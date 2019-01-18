@@ -2,6 +2,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: toolchain-enabler
+  namespace: codeready-toolchain
 subjects:
 - kind: ServiceAccount
   name: toolchain-enabler
@@ -9,3 +10,16 @@ roleRef:
   kind: Role
   name: toolchain-enabler
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: toolchain-enabler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: toolchain-enabler
+subjects:
+- kind: ServiceAccount
+  name: toolchain-enabler
+  namespace: codeready-toolchain
