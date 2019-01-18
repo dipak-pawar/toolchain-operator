@@ -1,13 +1,11 @@
 package client
 
-
 import (
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
-
 
 type ClientInterface interface {
 	KubernetesInterface() kubernetes.Interface
@@ -30,7 +28,6 @@ type ServiceAccount interface {
 
 // ClusterRoleBinding contains methods for manipulating ClusterRoleBindings.
 type ClusterRoleBinding interface {
-
 	CreateClusterRoleBinding(*rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, error)
 	GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error)
 }

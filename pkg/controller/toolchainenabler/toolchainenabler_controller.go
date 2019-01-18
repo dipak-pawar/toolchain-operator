@@ -4,6 +4,7 @@ import (
 	"context"
 
 	codereadyv1alpha1 "github.com/fabric8-services/toolchain-operator/pkg/apis/codeready/v1alpha1"
+	opclient "github.com/fabric8-services/toolchain-operator/pkg/client"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -17,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	opclient "github.com/fabric8-services/toolchain-operator/pkg/client"
 )
 
 var log = logf.Log.WithName("controller_toolchainenabler")

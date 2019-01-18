@@ -14,4 +14,3 @@ func (c *Client) CreateServiceAccount(ig *v1.ServiceAccount) (*v1.ServiceAccount
 func (c *Client) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
 	return c.CoreV1().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
 }
-
