@@ -152,12 +152,7 @@ func (r *ReconcileToolChainEnabler) addClusterRoleToSA(cr *codereadyv1alpha1.Too
 	}
 	crb.SetName("system:toolchain-enabler:self-provisioner")
 
-	//// Set ToolChainEnabler instance as the owner and controller
-	//if err := controllerutil.SetControllerReference(cr, crb, r.scheme); err != nil {
-	//	return err
-	//}
-
-	_, err := r.kubeClientSet.GetClusterRoleBinding("toolchain-enabler-system:self-provisioner")
+		_, err := r.kubeClientSet.GetClusterRoleBinding("system:toolchain-enabler:self-provisioner")
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("Adding self-provisioner cluster role to ", "SA Name", name)
 		_, err = r.kubeClientSet.CreateClusterRoleBinding(crb)
