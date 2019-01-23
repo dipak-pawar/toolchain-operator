@@ -8,9 +8,7 @@ rules:
   resources:
   - clusterrolebindings
   verbs:
-  - get
-  - list
-  - create
+  - '*'
 - apiGroups:
   - ""
   - project.openshift.io
@@ -18,3 +16,9 @@ rules:
   - projectrequests
   verbs:
   - create
+- apiGroups:
+  - codeready.io
+  resources:
+  - toolchainenablers/finalizers
+  verbs:
+  - update
