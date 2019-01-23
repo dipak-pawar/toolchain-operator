@@ -1,16 +1,21 @@
 package client
 
 import (
+	"context"
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // CreateServiceAccount creates the serviceAccount.
-func (c *Client) CreateServiceAccount(ig *v1.ServiceAccount) (*v1.ServiceAccount, error) {
-	return c.CoreV1().ServiceAccounts(ig.GetNamespace()).Create(ig)
+func (c *Client) CreateServiceAccount(sa *v1.ServiceAccount) error {
+	return c.Create(context.Background(), sa)
 }
 
 // GetServiceAccount returns the existing serviceAccount.
 func (c *Client) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
-	return c.CoreV1().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
+	sa := &v1.ServiceAccount{}
+	if err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, sa); err != nil {
+		return nil, err
+	}
+	return sa, nil
 }

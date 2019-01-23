@@ -1,16 +1,22 @@
 package client
 
 import (
+	"context"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-// CreateRoleBinding creates the roleBinding.
-func (c *Client) CreateClusterRoleBinding(ig *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, error) {
-	return c.RbacV1().ClusterRoleBindings().Create(ig)
+// CreateClusterRoleBinding creates the ClusterRoleBinding.
+func (c *Client) CreateClusterRoleBinding(crb *rbacv1.ClusterRoleBinding) error {
+	return c.Create(context.Background(), crb)
 }
 
-// GetRoleBinding returns the existing roleBinding.
+// GetClusterRoleBinding returns the existing ClusteRoleBinding.
 func (c *Client) GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
-	return c.RbacV1().ClusterRoleBindings().Get(name, metav1.GetOptions{})
+	crb := &rbacv1.ClusterRoleBinding{}
+
+	if err := c.Get(context.Background(), types.NamespacedName{Name: name}, crb); err != nil {
+		return nil, err
+	}
+	return crb, nil
 }

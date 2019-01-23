@@ -3,14 +3,14 @@ package toolchainenabler
 import (
 	"context"
 
+	"fmt"
 	codereadyv1alpha1 "github.com/fabric8-services/toolchain-operator/pkg/apis/codeready/v1alpha1"
-	opclient "github.com/fabric8-services/toolchain-operator/pkg/client"
+	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -22,6 +22,12 @@ import (
 
 var log = logf.Log.WithName("controller_toolchainenabler")
 
+var (
+	namespace = "codeready-toolchain"
+	saName    = "toolchain-sre"
+	crbName   = "system:toolchain-enabler:self-provisioner"
+)
+
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -30,7 +36,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileToolChainEnabler{client: mgr.GetClient(), scheme: mgr.GetScheme(), kubeClientSet: opclient.NewClientFromConfig(mgr.GetConfig())}
+	return &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -42,17 +48,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource ToolChainEnabler
-	err = c.Watch(&source.Kind{Type: &codereadyv1alpha1.ToolChainEnabler{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
+	if err := c.Watch(&source.Kind{Type: &codereadyv1alpha1.ToolChainEnabler{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
 
 	// Watch for changes to secondary resource Service Account and requeue the owner ToolChainEnabler
-	err = c.Watch(&source.Kind{Type: &corev1.ServiceAccount{}}, &handler.EnqueueRequestForOwner{
+	enqueueRequestForOwner := &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &codereadyv1alpha1.ToolChainEnabler{},
-	})
-	if err != nil {
+	}
+
+	if err := c.Watch(&source.Kind{Type: &corev1.ServiceAccount{}}, enqueueRequestForOwner); err != nil {
+		return err
+	}
+
+	if err := c.Watch(&source.Kind{Type: &rbacv1.ClusterRoleBinding{}}, enqueueRequestForOwner); err != nil {
 		return err
 	}
 
@@ -65,9 +75,8 @@ var _ reconcile.Reconciler = &ReconcileToolChainEnabler{}
 type ReconcileToolChainEnabler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client        client.Client
-	scheme        *runtime.Scheme
-	kubeClientSet opclient.ClientInterface
+	client client.ClientInterface
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a ToolChainEnabler object and makes changes based on the state read
@@ -80,8 +89,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 
 	// Fetch the ToolChainEnabler instance
 	instance := &codereadyv1alpha1.ToolChainEnabler{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
+	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
@@ -93,54 +101,54 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Create SA
-	if err := r.createSA(instance); err != nil {
+	if err := r.ensureSA(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	if err := r.addClusterRoleToSA(instance, "toolchain-sre", instance.Namespace); err != nil {
+	if err := r.ensureClusterRoleBinding(instance, saName, instance.Namespace); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	reqLogger.Info("Skip reconcile: Service Account with self-provisioner cluster role already exists")
+	reqLogger.Info("Skip reconcile: as Service Account 'toolchain-sre' created with self-provisioner cluster role")
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileToolChainEnabler) createSA(cr *codereadyv1alpha1.ToolChainEnabler) error {
+func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEnabler) error {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "toolchain-sre",
-			Namespace: cr.Namespace,
+			Name:      saName,
+			Namespace: tce.Namespace,
 		},
 	}
 
 	// Set ToolChainEnabler instance as the owner and controller
-	if err := controllerutil.SetControllerReference(cr, sa, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(tce, sa, r.scheme); err != nil {
 		return err
 	}
 
-	_, err := r.kubeClientSet.GetServiceAccount(cr.Namespace, "toolchain-sre")
+	_, err := r.client.GetServiceAccount(tce.Namespace, saName)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new Service Account in ", "Namespace", sa.Namespace, "Name", sa.Name)
-		_, err = r.kubeClientSet.CreateServiceAccount(sa)
-		if err != nil {
+		log.Info("Creating a new Service Account ", "Namespace", sa.Namespace, "Name", sa.Name)
+		if err = r.client.CreateServiceAccount(sa); err != nil {
 			return err
 		}
 
 		// SA created successfully
 		return nil
 	}
+	log.Info(fmt.Sprintf("ServiceAccount `%s` already exists", saName))
 
-	return err
+	return nil
 }
 
-func (r *ReconcileToolChainEnabler) addClusterRoleToSA(cr *codereadyv1alpha1.ToolChainEnabler, name, namespace string) error {
-	// create ClusterRoleBinding to system:auth-delegator Role
+// create ClusterRoleBinding for Service Account with self-provisioner Role
+func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
 	crb := &rbacv1.ClusterRoleBinding{
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
 				APIGroup:  "",
-				Name:      name,
+				Name:      saName,
 				Namespace: namespace,
 			},
 		},
@@ -150,19 +158,25 @@ func (r *ReconcileToolChainEnabler) addClusterRoleToSA(cr *codereadyv1alpha1.Too
 			Name:     "self-provisioner",
 		},
 	}
-	crb.SetName("system:toolchain-enabler:self-provisioner")
 
-		_, err := r.kubeClientSet.GetClusterRoleBinding("system:toolchain-enabler:self-provisioner")
+	crb.SetName(crbName)
+
+	// Set ToolChainEnabler instance as the owner and controller
+	if err := controllerutil.SetControllerReference(tce, crb, r.scheme); err != nil {
+		return err
+	}
+	_, err := r.client.GetClusterRoleBinding(crbName)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Adding self-provisioner cluster role to ", "SA Name", name)
-		_, err = r.kubeClientSet.CreateClusterRoleBinding(crb)
-		if err != nil {
+		log.Info("Adding `self-provisioner` cluster role to ", "Service Account", saName)
+		if err := r.client.CreateClusterRoleBinding(crb); err != nil {
 			return err
 		}
 
-		// SA created successfully
+		// ClusterRoleBinding created successfully
 		return nil
 	}
 
-	return err
+	log.Info(fmt.Sprintf("ClusterRoleBinding `%s` already exists", crbName))
+
+	return nil
 }
