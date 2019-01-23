@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toolchain-enabler
+  namespace: codeready-toolchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: toolchain-enabler
+  template:
+    metadata:
+      labels:
+        name: toolchain-enabler
+    spec:
+      serviceAccountName: toolchain-enabler
+      containers:
+        - name: toolchain-enabler
+          image: quay.io/openshiftio/toolchain-operator:dev
+          ports:
+          - containerPort: 60000
+            name: metrics
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
+            initialDelaySeconds: 4
+            periodSeconds: 10
+            failureThreshold: 1
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "toolchain-enabler"

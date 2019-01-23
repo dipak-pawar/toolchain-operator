@@ -53,7 +53,7 @@ clean-all:  clean-operator clean-resources
 
 .PHONY: clean-operator
 clean-operator:
-	@echo "Creating Deployment for Operator"
+	@echo "Deleting Deployment for Operator"
 	@cat minishift/operator.yaml | sed s/\:dev/:$(TAG)/ | oc delete -f - || true
 
 .PHONY: clean-resources
@@ -86,5 +86,5 @@ minishift-start:
 	minishift start --cpus 4 --memory 8GB
 	-eval `minishift docker-env` && oc login -u system:admin
 
-.PHONY: create-all
-create-all: clean-resources create-resources deps prebuild-check deploy-operator create-cr
+.PHONY: deploy-all
+deploy-all: clean-resources create-resources deps prebuild-check deploy-operator create-cr
