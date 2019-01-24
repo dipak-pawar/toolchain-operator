@@ -7,15 +7,15 @@ import (
 )
 
 // CreateSecret creates the Secret.
-func (c *Client) CreateSecret(s *v1.Secret) error {
-	return c.Create(context.Background(), s)
+func (c *clientImpl) CreateSecret(s *v1.Secret) error {
+	return c.Client.Create(context.Background(), s)
 
 }
 
 // GetSecret returns the existing Secret.
-func (c *Client) GetSecret(namespace, name string) (*v1.Secret, error) {
+func (c *clientImpl) GetSecret(namespace, name string) (*v1.Secret, error) {
 	s := &v1.Secret{}
-	if err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, s); err != nil {
+	if err := c.Client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, s); err != nil {
 		return nil, err
 	}
 	return s, nil

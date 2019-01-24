@@ -72,9 +72,9 @@ var _ reconcile.Reconciler = &ReconcileToolChainEnabler{}
 
 // ReconcileToolChainEnabler reconciles a ToolChainEnabler object
 type ReconcileToolChainEnabler struct {
-	// This client, initialized using mgr.Client() above, is a split client
+	// This client, initialized using mgr.clientImpl() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.ClientInterface
+	client client.Client
 	scheme *runtime.Scheme
 }
 

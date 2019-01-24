@@ -202,14 +202,14 @@ func TestToolChainEnablerController(t *testing.T) {
 	})
 }
 
-func assertSA(t *testing.T, cl client.ClientInterface) {
+func assertSA(t *testing.T, cl client.Client) {
 	// Check if Service Account has been created
 	sa, err := cl.GetServiceAccount(namespace, saName)
 	assert.NoError(t, err, "couldn't find created sa %s in namespace %s", saName, namespace)
 	assert.NotNil(t, sa)
 }
 
-func assertClusterRoleBinding(t *testing.T, cl client.ClientInterface) {
+func assertClusterRoleBinding(t *testing.T, cl client.Client) {
 	// Check Service Account has self-provision ClusterRole
 	actual, err := cl.GetClusterRoleBinding(crbName)
 	assert.NoError(t, err, "couldn't find ClusterRoleBinding %s", crbName)

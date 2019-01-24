@@ -6,7 +6,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ClientInterface interface {
+type Client interface {
 	client.Client
 	Secret
 	ServiceAccount
@@ -32,14 +32,14 @@ type ClusterRoleBinding interface {
 }
 
 // Interface assertion.
-var _ ClientInterface = &Client{}
+var _ Client = &clientImpl{}
 
-// Client is a kubernetes client that can talk to the API server.
-type Client struct {
+// clientImpl is a kubernetes client that can talk to the API server.
+type clientImpl struct {
 	client.Client
 }
 
 // NewClient creates a kubernetes client
-func NewClient(k8sClient client.Client) ClientInterface {
-	return &Client{k8sClient}
+func NewClient(k8sClient client.Client) Client {
+	return &clientImpl{k8sClient}
 }

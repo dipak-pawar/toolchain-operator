@@ -7,14 +7,14 @@ import (
 )
 
 // CreateServiceAccount creates the serviceAccount.
-func (c *Client) CreateServiceAccount(sa *v1.ServiceAccount) error {
-	return c.Create(context.Background(), sa)
+func (c *clientImpl) CreateServiceAccount(sa *v1.ServiceAccount) error {
+	return c.Client.Create(context.Background(), sa)
 }
 
 // GetServiceAccount returns the existing serviceAccount.
-func (c *Client) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
+func (c *clientImpl) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
 	sa := &v1.ServiceAccount{}
-	if err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, sa); err != nil {
+	if err := c.Client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, sa); err != nil {
 		return nil, err
 	}
 	return sa, nil
