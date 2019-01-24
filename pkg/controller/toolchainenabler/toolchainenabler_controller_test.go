@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"github.com/stretchr/testify/require"
 )
 
 // TestToolChainEnablerController runs ReconcileToolChainEnabler.Reconcile() against a
@@ -56,7 +57,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			res, err := r.Reconcile(req)
 
 			//then
-			assert.NoError(t, err, "reconcile is failing")
+			require.NoError(t, err, "reconcile is failing")
 			assert.False(t, res.Requeue, "reconcile requested requeue request")
 
 			assertSA(t, cl)
@@ -77,7 +78,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			res, err := r.Reconcile(req)
 
 			//then
-			assert.NoError(t, err, "reconcile is failing")
+			require.NoError(t, err, "reconcile is failing")
 			assert.False(t, res.Requeue, "reconcile requested requeue request")
 
 			sa, err := cl.GetServiceAccount(namespace, saName)
@@ -105,11 +106,12 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
 
 			//when
 			err = r.ensureSA(instance)
 			//then
-			assert.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", saName)
 			assertSA(t, cl)
 		})
 
@@ -125,17 +127,18 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
 
 			//create SA first time
 			err = r.ensureSA(instance)
-			assert.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", saName)
 			assertSA(t, cl)
 
 			//when
 			err = r.ensureSA(instance)
 
 			//then
-			assert.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", saName)
 			assertSA(t, cl)
 
 		})
@@ -155,11 +158,12 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
 
 			//when
 			err = r.ensureClusterRoleBinding(instance, saName, namespace)
 			//then
-			assert.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", saName)
 			assertClusterRoleBinding(t, cl)
 		})
 
@@ -177,17 +181,18 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
 
 			// create ClusterRolebinding first time
 			err = r.ensureClusterRoleBinding(instance, saName, namespace)
 
-			assert.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", saName)
 			assertClusterRoleBinding(t, cl)
 
 			// when
 			err = r.ensureClusterRoleBinding(instance, saName, namespace)
 
-			assert.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", saName)
 			assertClusterRoleBinding(t, cl)
 		})
 	})
