@@ -10,12 +10,12 @@ import (
 	"context"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"github.com/stretchr/testify/require"
 )
 
 // TestToolChainEnablerController runs ReconcileToolChainEnabler.Reconcile() against a
