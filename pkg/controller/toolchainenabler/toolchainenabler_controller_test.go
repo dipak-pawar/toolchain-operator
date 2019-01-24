@@ -18,12 +18,16 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+var (
+	namespace = "codeready-toolchain"
+	name      = "toolchain-enabler"
+)
+
 // TestToolChainEnablerController runs ReconcileToolChainEnabler.Reconcile() against a
 // fake client that tracks a ToolChainEnabler object.
 func TestToolChainEnablerController(t *testing.T) {
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
-	name := "toolchain-enabler"
 
 	// A ToolChainEnabler resource with metadata and spec.
 	tce := &codereadyv1alpha1.ToolChainEnabler{
@@ -82,12 +86,12 @@ func TestToolChainEnablerController(t *testing.T) {
 			assert.False(t, res.Requeue, "reconcile requested requeue request")
 
 			sa, err := cl.GetServiceAccount(namespace, saName)
-			assert.Error(t, err, "found sa %s", saName)
-			assert.Nil(t, sa)
+			assert.Error(t, err, "failed to get not found error")
+			assert.Nil(t, sa, "found sa %s", saName)
 
 			actual, err := cl.GetClusterRoleBinding(crbName)
-			assert.Error(t, err, "found ClusterRoleBinding %s", crbName)
-			assert.Nil(t, actual)
+			assert.Error(t, err, "failed to get not found error")
+			assert.Nil(t, actual, "found ClusterRoleBinding %s", crbName)
 		})
 
 	})
@@ -138,7 +142,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			err = r.ensureSA(instance)
 
 			//then
-			require.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to ensure SA %s", saName)
 			assertSA(t, cl)
 
 		})
@@ -163,7 +167,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			//when
 			err = r.ensureClusterRoleBinding(instance, saName, namespace)
 			//then
-			require.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create ClusterRoleBinding %s", saName)
 			assertClusterRoleBinding(t, cl)
 		})
 
@@ -186,13 +190,13 @@ func TestToolChainEnablerController(t *testing.T) {
 			// create ClusterRolebinding first time
 			err = r.ensureClusterRoleBinding(instance, saName, namespace)
 
-			require.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create ClusterRoleBinding %s", crbName)
 			assertClusterRoleBinding(t, cl)
 
 			// when
 			err = r.ensureClusterRoleBinding(instance, saName, namespace)
 
-			require.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to ensure ClusterRoleBinding %s", crbName)
 			assertClusterRoleBinding(t, cl)
 		})
 	})

@@ -23,9 +23,8 @@ import (
 var log = logf.Log.WithName("controller_toolchainenabler")
 
 var (
-	namespace = "codeready-toolchain"
-	saName    = "toolchain-sre"
-	crbName   = "system:toolchain-enabler:self-provisioner"
+	saName  = "toolchain-sre"
+	crbName = "system:toolchain-enabler:self-provisioner"
 )
 
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
