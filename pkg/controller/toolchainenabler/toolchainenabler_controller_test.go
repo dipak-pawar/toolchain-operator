@@ -18,9 +18,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var (
-	namespace = "codeready-toolchain"
-	name      = "toolchain-enabler"
+const (
+	Namespace = "codeready-toolchain"
+	Name      = "toolchain-enabler"
 )
 
 // TestToolChainEnablerController runs ReconcileToolChainEnabler.Reconcile() against a
@@ -32,8 +32,8 @@ func TestToolChainEnablerController(t *testing.T) {
 	// A ToolChainEnabler resource with metadata and spec.
 	tce := &codereadyv1alpha1.ToolChainEnabler{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      Name,
+			Namespace: Namespace,
 		},
 		Spec: codereadyv1alpha1.ToolChainEnablerSpec{},
 	}
@@ -55,7 +55,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(name)
+			req := reconcileRequest(Name)
 
 			//when
 			res, err := r.Reconcile(req)
@@ -76,7 +76,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(name)
+			req := reconcileRequest(Name)
 
 			//when
 			res, err := r.Reconcile(req)
@@ -85,13 +85,13 @@ func TestToolChainEnablerController(t *testing.T) {
 			require.NoError(t, err, "reconcile is failing")
 			assert.False(t, res.Requeue, "reconcile requested requeue request")
 
-			sa, err := cl.GetServiceAccount(namespace, saName)
+			sa, err := cl.GetServiceAccount(Namespace, SAName)
 			assert.Error(t, err, "failed to get not found error")
-			assert.Nil(t, sa, "found sa %s", saName)
+			assert.Nil(t, sa, "found sa %s", SAName)
 
-			actual, err := cl.GetClusterRoleBinding(crbName)
+			actual, err := cl.GetClusterRoleBinding(CRBName)
 			assert.Error(t, err, "failed to get not found error")
-			assert.Nil(t, actual, "found ClusterRoleBinding %s", crbName)
+			assert.Nil(t, actual, "found ClusterRoleBinding %s", CRBName)
 		})
 
 	})
@@ -106,7 +106,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(name)
+			req := reconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -115,7 +115,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			//when
 			err = r.ensureSA(instance)
 			//then
-			require.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", SAName)
 			assertSA(t, cl)
 		})
 
@@ -127,7 +127,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(name)
+			req := reconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -135,14 +135,14 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			//create SA first time
 			err = r.ensureSA(instance)
-			require.NoError(t, err, "failed to create SA %s", saName)
+			require.NoError(t, err, "failed to create SA %s", SAName)
 			assertSA(t, cl)
 
 			//when
 			err = r.ensureSA(instance)
 
 			//then
-			require.NoError(t, err, "failed to ensure SA %s", saName)
+			require.NoError(t, err, "failed to ensure SA %s", SAName)
 			assertSA(t, cl)
 
 		})
@@ -158,16 +158,16 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(name)
+			req := reconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
 			require.NoError(t, err)
 
 			//when
-			err = r.ensureClusterRoleBinding(instance, saName, namespace)
+			err = r.ensureClusterRoleBinding(instance, SAName, Namespace)
 			//then
-			require.NoError(t, err, "failed to create ClusterRoleBinding %s", saName)
+			require.NoError(t, err, "failed to create ClusterRoleBinding %s", SAName)
 			assertClusterRoleBinding(t, cl)
 		})
 
@@ -181,22 +181,22 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			// Mock request to simulate Reconcile() being called on an event for a
 			// watched resource .
-			req := reconcileRequest(name)
+			req := reconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
 			require.NoError(t, err)
 
 			// create ClusterRolebinding first time
-			err = r.ensureClusterRoleBinding(instance, saName, namespace)
+			err = r.ensureClusterRoleBinding(instance, SAName, Namespace)
 
-			require.NoError(t, err, "failed to create ClusterRoleBinding %s", crbName)
+			require.NoError(t, err, "failed to create ClusterRoleBinding %s", CRBName)
 			assertClusterRoleBinding(t, cl)
 
 			// when
-			err = r.ensureClusterRoleBinding(instance, saName, namespace)
+			err = r.ensureClusterRoleBinding(instance, SAName, Namespace)
 
-			require.NoError(t, err, "failed to ensure ClusterRoleBinding %s", crbName)
+			require.NoError(t, err, "failed to ensure ClusterRoleBinding %s", CRBName)
 			assertClusterRoleBinding(t, cl)
 		})
 	})
@@ -204,23 +204,23 @@ func TestToolChainEnablerController(t *testing.T) {
 
 func assertSA(t *testing.T, cl client.Client) {
 	// Check if Service Account has been created
-	sa, err := cl.GetServiceAccount(namespace, saName)
-	assert.NoError(t, err, "couldn't find created sa %s in namespace %s", saName, namespace)
+	sa, err := cl.GetServiceAccount(Namespace, SAName)
+	assert.NoError(t, err, "couldn't find created sa %s in namespace %s", SAName, Namespace)
 	assert.NotNil(t, sa)
 }
 
 func assertClusterRoleBinding(t *testing.T, cl client.Client) {
 	// Check Service Account has self-provision ClusterRole
-	actual, err := cl.GetClusterRoleBinding(crbName)
-	assert.NoError(t, err, "couldn't find ClusterRoleBinding %s", crbName)
+	actual, err := cl.GetClusterRoleBinding(CRBName)
+	assert.NoError(t, err, "couldn't find ClusterRoleBinding %s", CRBName)
 	assert.NotNil(t, actual)
 
 	subs := []rbacv1.Subject{
 		{
 			Kind:      "ServiceAccount",
 			APIGroup:  "",
-			Name:      saName,
-			Namespace: namespace,
+			Name:      SAName,
+			Namespace: Namespace,
 		},
 	}
 	roleRef := rbacv1.RoleRef{
@@ -237,7 +237,7 @@ func reconcileRequest(name string) reconcile.Request {
 	return reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      name,
-			Namespace: namespace,
+			Namespace: Namespace,
 		},
 	}
 }

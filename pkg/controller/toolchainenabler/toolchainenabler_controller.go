@@ -22,9 +22,9 @@ import (
 
 var log = logf.Log.WithName("controller_toolchainenabler")
 
-var (
-	saName  = "toolchain-sre"
-	crbName = "system:toolchain-enabler:self-provisioner"
+const (
+	SAName  = "toolchain-sre"
+	CRBName = "system:toolchain-enabler:self-provisioner"
 )
 
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -72,7 +72,7 @@ var _ reconcile.Reconciler = &ReconcileToolChainEnabler{}
 
 // ReconcileToolChainEnabler reconciles a ToolChainEnabler object
 type ReconcileToolChainEnabler struct {
-	// This client, initialized using mgr.clientImpl() above, is a split client
+	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
@@ -104,7 +104,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	if err := r.ensureClusterRoleBinding(instance, saName, instance.Namespace); err != nil {
+	if err := r.ensureClusterRoleBinding(instance, SAName, instance.Namespace); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -115,7 +115,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEnabler) error {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      saName,
+			Name:      SAName,
 			Namespace: tce.Namespace,
 		},
 	}
@@ -125,7 +125,7 @@ func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEna
 		return err
 	}
 
-	_, err := r.client.GetServiceAccount(tce.Namespace, saName)
+	_, err := r.client.GetServiceAccount(tce.Namespace, SAName)
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("Creating a new Service Account ", "Namespace", sa.Namespace, "Name", sa.Name)
 		if err = r.client.CreateServiceAccount(sa); err != nil {
@@ -135,7 +135,7 @@ func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEna
 		// SA created successfully
 		return nil
 	}
-	log.Info(fmt.Sprintf("ServiceAccount `%s` already exists", saName))
+	log.Info(fmt.Sprintf("ServiceAccount `%s` already exists", SAName))
 
 	return nil
 }
@@ -158,13 +158,13 @@ func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alp
 		},
 	}
 
-	crb.SetName(crbName)
+	crb.SetName(CRBName)
 
 	// Set ToolChainEnabler instance as the owner and controller
 	if err := controllerutil.SetControllerReference(tce, crb, r.scheme); err != nil {
 		return err
 	}
-	_, err := r.client.GetClusterRoleBinding(crbName)
+	_, err := r.client.GetClusterRoleBinding(CRBName)
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("Adding `self-provisioner` cluster role to ", "Service Account", saName)
 		if err := r.client.CreateClusterRoleBinding(crb); err != nil {
@@ -175,7 +175,7 @@ func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alp
 		return nil
 	}
 
-	log.Info(fmt.Sprintf("ClusterRoleBinding `%s` already exists", crbName))
+	log.Info(fmt.Sprintf("ClusterRoleBinding `%s` already exists", CRBName))
 
 	return nil
 }
