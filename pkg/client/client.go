@@ -15,7 +15,6 @@ type Client interface {
 
 // Secret contains methods for manipulating Secrets
 type Secret interface {
-	CreateSecret(*v1.Secret) error
 	GetSecret(namespace, name string) (*v1.Secret, error)
 }
 
