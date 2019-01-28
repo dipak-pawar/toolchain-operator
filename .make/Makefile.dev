@@ -40,6 +40,7 @@ create-cr:
 .PHONY: build-image
 build-image:
 	docker build -t $(DOCKER_REPO)/$(IMAGE_NAME):$(TAG) -f Dockerfile.dev .
+	docker tag $(DOCKER_REPO)/$(IMAGE_NAME):$(TAG) $(DOCKER_REPO)/$(IMAGE_NAME):test
 
 .PHONY: deploy-operator-only
 deploy-operator-only:
@@ -73,6 +74,8 @@ clean-resources:
 	@oc delete -f $(DEPLOY_DIR)/namespace.yaml || true
 	@echo "Deleting Custom Resource Definitions..."
 	@oc delete -f $(DEPLOY_DIR)/crds/codeready_v1alpha1_toolchainenabler_crd.yaml || true
+	@echo "Deleting ClusterRole 'toolchain-enabler'"
+	@oc delete clusterrole toolchain-enabler || true
 	@echo "Deleting ClusterRoleBinding 'system:toolchain-enabler:self-provisioner'"
 	@oc delete clusterrolebinding system:toolchain-enabler:self-provisioner || true
 
