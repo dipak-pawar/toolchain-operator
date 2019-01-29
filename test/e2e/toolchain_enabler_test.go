@@ -12,6 +12,8 @@ import (
 	"github.com/fabric8-services/toolchain-operator/pkg/controller/toolchainenabler"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 )
@@ -32,9 +34,7 @@ func TestTooChainEnabler(t *testing.T) {
 		},
 	}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, toolChainEnablerList)
-	if err != nil {
-		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
-	}
+	require.NoError(t, err, "failed to add custom resource scheme to framework: %v", err)
 
 	// run subtests
 	t.Run("Toolchain", func(t *testing.T) {
@@ -78,25 +78,21 @@ func EnableCodeReadyToolChain(t *testing.T) {
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
 	err := ctx.InitializeClusterResources(&framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
-	if err != nil {
-		t.Fatalf("failed to initialize cluster resources: %v", err)
-	}
+	require.NoError(t, err, "failed to initialize cluster resources: %v", err)
 	t.Log("Initialized cluster resources")
+
 	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "failed to get namespace where operator needs to run: %v", err)
+
 	// get global framework variables
 	f := framework.Global
 
 	// wait for toolchain-operator to be ready
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, toolchainenabler.Name, 1, retryInterval, timeout)
-	t.Log("Toolchain operator is ready and running state")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "failed while waiting for operator deployment")
 
-	if err = verifyResources(t, f, ctx); err != nil {
-		t.Fatal(err)
-	}
+	t.Log("Toolchain operator is ready and running state")
+
+	err = verifyResources(t, f, ctx)
+	assert.NoError(t, err)
 }
