@@ -9,6 +9,8 @@ import (
 
 	"context"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	fakeoauth "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,7 +51,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("With ToolChainEnabler Custom Resource", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...))
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -70,7 +72,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("without ToolChainEnabler Custom Resource", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls without any runtime object
-			cl := client.NewClient(fake.NewFakeClient())
+			cl := client.NewClient(fake.NewFakeClient(), fakeoauth.NewSimpleClientset().OauthV1())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -100,7 +102,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...))
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -121,7 +123,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...))
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -152,7 +154,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...))
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -173,7 +175,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...))
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -197,6 +199,58 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			require.NoError(t, err, "failed to ensure ClusterRoleBinding %s", CRBName)
 			assertClusterRoleBinding(t, cl)
+		})
+	})
+
+	t.Run("OAuthClient", func(t *testing.T) {
+		t.Run("not exists", func(t *testing.T) {
+			//given
+			// Create a fake client to mock API calls.
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+
+			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
+
+			req := reconcileRequest(Name)
+
+			instance := &codereadyv1alpha1.ToolChainEnabler{}
+			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
+
+			//when
+			err = r.ensureOAuthClient(instance)
+			//then
+			require.NoError(t, err, "failed to create OAuthClient %s", OAuthClientName)
+			assertOAuthClient(t, cl)
+		})
+
+		t.Run("exists", func(t *testing.T) {
+			//given
+			// Create a fake client to mock API calls.
+			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+
+			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
+
+			// Mock request to simulate Reconcile() being called on an event for a
+			// watched resource .
+			req := reconcileRequest(Name)
+
+			instance := &codereadyv1alpha1.ToolChainEnabler{}
+			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
+
+			// create OAuthClient first time
+			err = r.ensureOAuthClient(instance)
+
+			require.NoError(t, err, "failed to create OAuthClient %s", OAuthClientName)
+			assertOAuthClient(t, cl)
+
+			// when
+			err = r.ensureOAuthClient(instance)
+
+			require.NoError(t, err, "failed to ensure OAuthClient %s", OAuthClientName)
+			assertOAuthClient(t, cl)
 		})
 	})
 }
@@ -230,6 +284,20 @@ func assertClusterRoleBinding(t *testing.T, cl client.Client) {
 
 	assert.Equal(t, actual.Subjects, subs)
 	assert.Equal(t, actual.RoleRef, roleRef)
+}
+
+func assertOAuthClient(t *testing.T, cl client.Client) {
+	// Check OAuthClient has been created
+	actual, err := cl.GetOAuthClient(OAuthClientName)
+	assert.NoError(t, err, "couldn't find OAuthClient %s", OAuthClientName)
+	assert.NotNil(t, actual)
+
+	require.NotNil(t, actual.AccessTokenMaxAgeSeconds)
+	assert.Equal(t, *actual.AccessTokenMaxAgeSeconds, int32(0))
+
+	assert.NotEmpty(t, actual.Secret)
+	assert.Equal(t, actual.GrantMethod, oauthv1.GrantHandlerAuto)
+	assert.Equal(t, actual.RedirectURIs, []string{"https://sso.openshift.io/", "https://auth.openshift.io/"})
 }
 
 func reconcileRequest(name string) reconcile.Request {

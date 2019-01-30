@@ -42,6 +42,14 @@ required = [
   version = "=v0.1.4"
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/openshift/api"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/openshift/client-go"
+
+[[constraint]]
   name = "github.com/operator-framework/operator-sdk"
   # The version rule is used for a specific release and the master branch for in between releases.
   # branch = "v0.2.x" #osdk_branch_annotation

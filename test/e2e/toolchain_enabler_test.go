@@ -10,6 +10,7 @@ import (
 	codereadyv1alpha1 "github.com/fabric8-services/toolchain-operator/pkg/apis/codeready/v1alpha1"
 
 	"github.com/fabric8-services/toolchain-operator/pkg/controller/toolchainenabler"
+	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	"github.com/stretchr/testify/assert"
@@ -65,6 +66,11 @@ func verifyResources(t *testing.T, f *framework.Framework, ctx *framework.TestCt
 	}
 
 	err = waitForSelfProvisioningServiceAccount(t, f.KubeClient, namespace, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
+
+	err = waitForOauthClient(t, oauthv1.NewForConfigOrDie(f.KubeConfig), retryInterval, timeout)
 	if err != nil {
 		return err
 	}
