@@ -72,8 +72,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return c.Watch(&source.Kind{Type: &apioauthv1.OAuthClient{}}, enqueueRequestForOwner)
-
-	return nil
 }
 
 var _ reconcile.Reconciler = &ReconcileToolChainEnabler{}
