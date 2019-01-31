@@ -71,9 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	if err := c.Watch(&source.Kind{Type: &apioauthv1.OAuthClient{}}, enqueueRequestForOwner); err != nil {
-		return err
-	}
+	return c.Watch(&source.Kind{Type: &apioauthv1.OAuthClient{}}, enqueueRequestForOwner)
 
 	return nil
 }
@@ -122,7 +120,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	reqLogger.Info("Skipping reconcile as all required objects are created and exists", "Service Account", SAName, "ClusterRoleBindning", CRBName, "OAuthClient", OAuthClientName)
+	reqLogger.Info("Skipping reconcile as all required objects are created and exist", "Service Account", SAName, "ClusterRoleBindning", CRBName, "OAuthClient", OAuthClientName)
 	return reconcile.Result{}, nil
 }
 
