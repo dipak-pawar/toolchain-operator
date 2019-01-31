@@ -2,7 +2,6 @@ package client
 
 import (
 	apioauthv1 "github.com/openshift/api/oauth/v1"
-	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,10 +44,9 @@ var _ Client = &clientImpl{}
 // clientImpl is a kubernetes client that can talk to the API server.
 type clientImpl struct {
 	client.Client
-	oauthClient oauthv1.OAuthClientInterface
 }
 
 // NewClient creates a kubernetes client
-func NewClient(k8sClient client.Client, oauthClient oauthv1.OauthV1Interface) Client {
-	return &clientImpl{k8sClient, oauthClient.OAuthClients()}
+func NewClient(k8sClient client.Client) Client {
+	return &clientImpl{k8sClient}
 }

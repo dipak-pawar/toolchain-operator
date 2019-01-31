@@ -10,7 +10,6 @@ import (
 	"context"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	fakeoauth "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/types"
@@ -51,7 +50,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("With ToolChainEnabler Custom Resource", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -72,7 +71,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("without ToolChainEnabler Custom Resource", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls without any runtime object
-			cl := client.NewClient(fake.NewFakeClient(), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -102,7 +101,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -123,7 +122,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -154,7 +153,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -175,7 +174,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -203,10 +202,14 @@ func TestToolChainEnablerController(t *testing.T) {
 	})
 
 	t.Run("OAuthClient", func(t *testing.T) {
+		// register openshift resource OAuthClient specific schema
+		err := oauthv1.Install(s)
+		require.NoError(t, err)
+
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
@@ -227,7 +230,7 @@ func TestToolChainEnablerController(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...), fakeoauth.NewSimpleClientset().OauthV1())
+			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}

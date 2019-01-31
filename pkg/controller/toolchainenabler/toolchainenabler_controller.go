@@ -7,7 +7,6 @@ import (
 	codereadyv1alpha1 "github.com/fabric8-services/toolchain-operator/pkg/apis/codeready/v1alpha1"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	apioauthv1 "github.com/openshift/api/oauth/v1"
-	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -42,8 +41,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	oauthV1Client := oauthv1.NewForConfigOrDie(mgr.GetConfig())
-	return &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient(), oauthV1Client), scheme: mgr.GetScheme()}
+	return &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -124,7 +122,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	reqLogger.Info("Skip reconcile: as Service Account 'toolchain-sre' created with self-provisioner cluster role")
+	reqLogger.Info("Skipping reconcile as all required objects are created and exists", "Service Account", SAName, "ClusterRoleBindning", CRBName, "OAuthClient", OAuthClientName)
 	return reconcile.Result{}, nil
 }
 

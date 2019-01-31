@@ -312,11 +312,8 @@
   digest = "1:069a07af6b0823b32977b9b9e5dc913236fc3fd02fb008770767e2881286a93f"
   name = "github.com/openshift/client-go"
   packages = [
-    "oauth/clientset/versioned",
-    "oauth/clientset/versioned/fake",
     "oauth/clientset/versioned/scheme",
     "oauth/clientset/versioned/typed/oauth/v1",
-    "oauth/clientset/versioned/typed/oauth/v1/fake",
   ]
   pruneopts = "NT"
   revision = "1540772775fa910515f0ff094d83ef41735d470b"
@@ -710,7 +707,6 @@
   packages = [
     "discovery",
     "discovery/cached",
-    "discovery/fake",
     "dynamic",
     "kubernetes",
     "kubernetes/scheme",
@@ -894,7 +890,6 @@
   input-imports = [
     "github.com/fzipp/gocyclo",
     "github.com/openshift/api/oauth/v1",
-    "github.com/openshift/client-go/oauth/clientset/versioned/fake",
     "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
