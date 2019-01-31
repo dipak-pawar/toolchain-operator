@@ -1,12 +1,16 @@
 package e2e
 
 import (
+	"context"
 	"github.com/fabric8-services/toolchain-operator/pkg/controller/toolchainenabler"
-	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -62,10 +66,10 @@ func waitForSelfProvisioningServiceAccount(t *testing.T, kubeclient kubernetes.I
 	return nil
 }
 
-func waitForOauthClient(t *testing.T, oauthClient oauthv1.OauthV1Interface, retryInterval, timeout time.Duration) error {
+func waitForOauthClient(t *testing.T, framewokclient framework.FrameworkClient, retryInterval, timeout time.Duration) error {
 	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
-		oc, err := oauthClient.OAuthClients().Get(toolchainenabler.OAuthClientName, metav1.GetOptions{})
-		if err != nil {
+		oc := &oauthv1.OAuthClient{}
+		if err := framewokclient.Get(context.Background(), types.NamespacedName{Name: toolchainenabler.OAuthClientName}, oc); err != nil {
 			if apierrors.IsNotFound(err) {
 				t.Logf("Waiting for availability of %s OAuthClient \n", toolchainenabler.OAuthClientName)
 				return false, nil
@@ -73,7 +77,7 @@ func waitForOauthClient(t *testing.T, oauthClient oauthv1.OauthV1Interface, retr
 			return false, err
 		}
 
-		if oc != nil {
+		if !reflect.DeepEqual(oauthv1.OAuthClient{}, *oc) {
 			t.Logf("Found OAuthClient %s \n", toolchainenabler.OAuthClientName)
 			return true, nil
 		}
