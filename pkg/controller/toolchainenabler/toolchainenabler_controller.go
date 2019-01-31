@@ -206,7 +206,7 @@ func (r *ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Too
 		},
 		Secret:                   randomString,
 		GrantMethod:              apioauthv1.GrantHandlerAuto,
-		RedirectURIs:             []string{"https://sso.openshift.io/", "https://auth.openshift.io/"},
+		RedirectURIs:             []string{"https://auth.openshift.io/"},
 		AccessTokenMaxAgeSeconds: &ageSeconds,
 	}
 

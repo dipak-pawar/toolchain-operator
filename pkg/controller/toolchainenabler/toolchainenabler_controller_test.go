@@ -300,7 +300,7 @@ func assertOAuthClient(t *testing.T, cl client.Client) {
 
 	assert.NotEmpty(t, actual.Secret)
 	assert.Equal(t, actual.GrantMethod, oauthv1.GrantHandlerAuto)
-	assert.Equal(t, actual.RedirectURIs, []string{"https://sso.openshift.io/", "https://auth.openshift.io/"})
+	assert.Equal(t, actual.RedirectURIs, []string{"https://auth.openshift.io/"})
 }
 
 func reconcileRequest(name string) reconcile.Request {
