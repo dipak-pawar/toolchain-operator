@@ -76,7 +76,7 @@ func TestTooChainEnabler(t *testing.T) {
 
 		// when
 		err = operatorClient.Delete(context.Background(), oc)
-		require.NoError(t, err, "failed to delete oauth client %s", api.OAuthClientName)
+		require.NoError(t, err, "failed to delete oauth client %s", toolchainenabler.OAuthClientName)
 
 		// then
 		err = verifyResources(t, operatorClient, namespace)
