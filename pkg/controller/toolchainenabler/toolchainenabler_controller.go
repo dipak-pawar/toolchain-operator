@@ -15,6 +15,8 @@ import (
 	errs "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -94,8 +96,16 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 
 	// Fetch the ToolChainEnabler instance
 	instance := &codereadyv1alpha1.ToolChainEnabler{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+	namespacedName := request.NamespacedName
+
+	// overwrite for cluster scoped resources like OAuthClient, ClusterRoleBinding as you can't get namespace from it's event
+	if request.Namespace == "" {
+		log.Info("Couldn't find namespace in the request, getting it from env variable `WATCH_NAMESPACE`")
+		namespacedName = types.NamespacedName{Namespace: os.Getenv("WATCH_NAMESPACE"), Name: request.Name}
+	}
+	if err := r.client.Get(context.TODO(), namespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
+			log.Info("Requeueing request doesn't start as couldn't find requested object or stopped as requested object could have been deleted")
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
