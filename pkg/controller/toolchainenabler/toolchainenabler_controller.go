@@ -104,6 +104,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		ns := os.Getenv("WATCH_NAMESPACE")
 		if ns == "" {
 			log.Error(errs.New("env variable `WATCH_NAMESPACE` is not set"), "can't reconcile request coming from cluster scoped resources event")
+			return reconcile.Result{}, nil
 		}
 		namespacedName = types.NamespacedName{Namespace: ns, Name: request.Name}
 	}

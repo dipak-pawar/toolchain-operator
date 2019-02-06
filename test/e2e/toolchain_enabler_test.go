@@ -16,7 +16,7 @@ import (
 	"os"
 )
 
-func TestTooChainEnabler(t *testing.T) {
+func TestToolChainEnabler(t *testing.T) {
 
 	toolChainEnablerList := &codereadyv1alpha1.ToolChainEnablerList{
 		TypeMeta: metav1.TypeMeta{
@@ -25,18 +25,18 @@ func TestTooChainEnabler(t *testing.T) {
 		},
 	}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, toolChainEnablerList)
-	require.NoError(t, err, "failed to add custom resource scheme to framework: %v", err)
+	require.NoError(t, err, "failed to add custom resource scheme to framework")
 
 	os.Setenv("TEST_NAMESPACE", "toolchain-e2e-test")
 	defer os.Unsetenv("TEST_NAMESPACE")
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
 	err = ctx.InitializeClusterResources(&framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
-	require.NoError(t, err, "failed to initialize cluster resources: %v", err)
+	require.NoError(t, err, "failed to initialize cluster resources")
 	t.Log("Initialized cluster resources")
 
 	namespace, err := ctx.GetNamespace()
-	require.NoError(t, err, "failed to get namespace where operator needs to run: %v", err)
+	require.NoError(t, err, "failed to get namespace where operator needs to run")
 
 	// get global framework variables
 	f := framework.Global
@@ -60,7 +60,7 @@ func TestTooChainEnabler(t *testing.T) {
 	}
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(context.TODO(), exampleToolChainEnabler, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
-	require.NoError(t, err, "failed to create custom resource of kind `ToolChainEnabler`: %v", err)
+	require.NoError(t, err, "failed to create custom resource of kind `ToolChainEnabler`")
 
 	operatorClient := client.NewClient(f.Client.Client)
 
@@ -90,7 +90,7 @@ func TestTooChainEnabler(t *testing.T) {
 
 		// when
 		err = operatorClient.Delete(context.Background(), clusterRoleBinding)
-		require.NoError(t, err, "failed to delete cluster role binding %s: %s", toolchainenabler.CRBName, err)
+		require.NoError(t, err, "failed to delete cluster role binding %s", toolchainenabler.CRBName)
 
 		// then
 		err = verifyResources(t, operatorClient, namespace)
@@ -104,7 +104,7 @@ func TestTooChainEnabler(t *testing.T) {
 
 		// when
 		err = operatorClient.Delete(context.Background(), sa)
-		require.NoError(t, err, "failed to delete service account %s/%s: %s", namespace, toolchainenabler.SAName, err)
+		require.NoError(t, err, "failed to delete service account %s/%s", namespace, toolchainenabler.SAName)
 
 		// then
 		err = verifyResources(t, operatorClient, namespace)
