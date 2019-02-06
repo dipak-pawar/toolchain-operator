@@ -12,11 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/fabric8-services/toolchain-operator/pkg/secret"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	errs "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -101,9 +101,9 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	// overwrite for cluster scoped resources like OAuthClient, ClusterRoleBinding as you can't get namespace from it's event
 	if request.Namespace == "" {
 		log.Info("Couldn't find namespace in the request, getting it from env variable `WATCH_NAMESPACE`")
-		ns := os.Getenv("WATCH_NAMESPACE")
-		if ns == "" {
-			log.Error(errs.New("env variable `WATCH_NAMESPACE` is not set"), "can't reconcile request coming from cluster scoped resources event")
+		ns, err := k8sutil.GetWatchNamespace()
+		if err != nil {
+			log.Error(err, "can't reconcile request coming from cluster scoped resources event")
 			return reconcile.Result{}, nil
 		}
 		namespacedName = types.NamespacedName{Namespace: ns, Name: request.Name}
