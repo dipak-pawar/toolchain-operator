@@ -101,7 +101,11 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	// overwrite for cluster scoped resources like OAuthClient, ClusterRoleBinding as you can't get namespace from it's event
 	if request.Namespace == "" {
 		log.Info("Couldn't find namespace in the request, getting it from env variable `WATCH_NAMESPACE`")
-		namespacedName = types.NamespacedName{Namespace: os.Getenv("WATCH_NAMESPACE"), Name: request.Name}
+		ns := os.Getenv("WATCH_NAMESPACE")
+		if ns == "" {
+			log.Error(errs.New("env variable `WATCH_NAMESPACE` is not set"), "can't reconcile request coming from cluster scoped resources event")
+		}
+		namespacedName = types.NamespacedName{Namespace: ns, Name: request.Name}
 	}
 	if err := r.client.Get(context.TODO(), namespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
