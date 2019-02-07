@@ -5,8 +5,11 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strings"
 )
+
+var log = logf.Log.WithName("cluster_config_informer")
 
 const RouteName = "toolchain-route"
 
@@ -51,14 +54,11 @@ func (i Informer) routingSubDomain(options ...RouteOption) (string, error) {
 		return "", err
 	}
 
-	route, err := i.oc.GetRoute(i.ns, RouteName)
-	if err != nil {
-		return "", err
-	}
-
-	if err := i.oc.DeleteRoute(route); err != nil {
-		return "", err
-	}
+	defer func() {
+		if err := i.oc.DeleteRoute(route); err != nil {
+			log.Error(err, "failed to delete route", "RouteName", RouteName)
+		}
+	}()
 
 	return routeHostSubDomain(route.Spec.Host), nil
 }
