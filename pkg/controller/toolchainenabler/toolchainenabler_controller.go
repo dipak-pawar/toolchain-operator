@@ -154,14 +154,14 @@ func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEna
 	if _, err := r.client.GetServiceAccount(tce.Namespace, SAName); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Creating a new Service Account ", "Namespace", sa.Namespace, "Name", sa.Name)
-			if err = r.client.CreateServiceAccount(sa); err != nil {
+			if err := r.client.CreateServiceAccount(sa); err != nil {
 				return err
 			}
 
 			log.Info(fmt.Sprintf("ServiceAccount `%s` created successfully", SAName))
 			return nil
 		}
-		return err
+		return errs.Wrapf(err, "failed to get service account %s", SAName)
 	}
 	log.Info(fmt.Sprintf("ServiceAccount `%s` already exists", SAName))
 
@@ -194,7 +194,7 @@ func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alp
 	}
 	if _, err := r.client.GetClusterRoleBinding(CRBName); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("Adding `self-provisioner` cluster role to ", "Service Account", saName)
+			log.Info(`Adding "self-provisioner" cluster role to `, "Service Account", saName)
 			if err := r.client.CreateClusterRoleBinding(crb); err != nil {
 				return err
 			}
@@ -202,7 +202,7 @@ func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alp
 			log.Info(fmt.Sprintf("ClusterRoleBinding %s created successfully", CRBName))
 			return nil
 		}
-		return err
+		return errs.Wrapf(err, "failed to get clusterrolebinding %s", CRBName)
 	}
 
 	log.Info(fmt.Sprintf("ClusterRoleBinding `%s` already exists", CRBName))
@@ -242,7 +242,7 @@ func (r *ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Too
 			log.Info(fmt.Sprintf("OAuthClient %s created successfully", OAuthClientName))
 			return nil
 		}
-		return err
+		return errs.Wrapf(err, "failed to get oauthclient %s", OAuthClientName)
 	}
 
 	log.Info(fmt.Sprintf("OAuthClient `%s` already exists", OAuthClientName))
