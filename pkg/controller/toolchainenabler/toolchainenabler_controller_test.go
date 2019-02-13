@@ -48,6 +48,10 @@ func TestToolChainEnablerController(t *testing.T) {
 
 	t.Run("Reconcile", func(t *testing.T) {
 		t.Run("With ToolChainEnabler Custom Resource", func(t *testing.T) {
+			// register openshift resource OAuthClient specific schema
+			err := oauthv1.Install(s)
+			require.NoError(t, err)
+
 			//given
 			// Create a fake client to mock API calls.
 			cl := client.NewClient(fake.NewFakeClient(objs...))
@@ -66,6 +70,7 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			assertSA(t, cl)
 			assertClusterRoleBinding(t, cl)
+			assertOAuthClient(t, cl)
 		})
 
 		t.Run("without ToolChainEnabler Custom Resource", func(t *testing.T) {
