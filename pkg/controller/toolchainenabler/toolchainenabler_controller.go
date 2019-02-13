@@ -151,15 +151,17 @@ func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEna
 		return err
 	}
 
-	_, err := r.client.GetServiceAccount(tce.Namespace, SAName)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new Service Account ", "Namespace", sa.Namespace, "Name", sa.Name)
-		if err = r.client.CreateServiceAccount(sa); err != nil {
-			return err
-		}
+	if _, err := r.client.GetServiceAccount(tce.Namespace, SAName); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Creating a new Service Account ", "Namespace", sa.Namespace, "Name", sa.Name)
+			if err = r.client.CreateServiceAccount(sa); err != nil {
+				return err
+			}
 
-		log.Info(fmt.Sprintf("ServiceAccount `%s` created successfully", SAName))
-		return nil
+			log.Info(fmt.Sprintf("ServiceAccount `%s` created successfully", SAName))
+			return nil
+		}
+		return err
 	}
 	log.Info(fmt.Sprintf("ServiceAccount `%s` already exists", SAName))
 
@@ -190,15 +192,17 @@ func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alp
 	if err := controllerutil.SetControllerReference(tce, crb, r.scheme); err != nil {
 		return err
 	}
-	_, err := r.client.GetClusterRoleBinding(CRBName)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Adding `self-provisioner` cluster role to ", "Service Account", saName)
-		if err := r.client.CreateClusterRoleBinding(crb); err != nil {
-			return err
-		}
+	if _, err := r.client.GetClusterRoleBinding(CRBName); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Adding `self-provisioner` cluster role to ", "Service Account", saName)
+			if err := r.client.CreateClusterRoleBinding(crb); err != nil {
+				return err
+			}
 
-		log.Info(fmt.Sprintf("ClusterRoleBinding %s created successfully", CRBName))
-		return nil
+			log.Info(fmt.Sprintf("ClusterRoleBinding %s created successfully", CRBName))
+			return nil
+		}
+		return err
 	}
 
 	log.Info(fmt.Sprintf("ClusterRoleBinding `%s` already exists", CRBName))
@@ -227,15 +231,18 @@ func (r *ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Too
 	if err := controllerutil.SetControllerReference(tce, oc, r.scheme); err != nil {
 		return err
 	}
-	_, err = r.client.GetOAuthClient(OAuthClientName)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating", "OAuthClient", OAuthClientName)
-		if err := r.client.CreateOAuthClient(oc); err != nil {
-			return err
-		}
 
-		log.Info(fmt.Sprintf("OAuthClient %s created successfully", OAuthClientName))
-		return nil
+	if _, err = r.client.GetOAuthClient(OAuthClientName); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Creating", "OAuthClient", OAuthClientName)
+			if err := r.client.CreateOAuthClient(oc); err != nil {
+				return err
+			}
+
+			log.Info(fmt.Sprintf("OAuthClient %s created successfully", OAuthClientName))
+			return nil
+		}
+		return err
 	}
 
 	log.Info(fmt.Sprintf("OAuthClient `%s` already exists", OAuthClientName))
