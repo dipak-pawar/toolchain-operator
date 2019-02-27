@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
-	"github.com/fabric8-services/toolchain-operator/pkg/controller/toolchainenabler"
+	"github.com/fabric8-services/toolchain-operator/pkg/config"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestToolChainEnabler(t *testing.T) {
 	f := framework.Global
 
 	// wait for toolchain-operator to be ready
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, toolchainenabler.Name, 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, config.Name, 1, retryInterval, timeout)
 	require.NoError(t, err, "failed while waiting for operator deployment")
 
 	t.Log("Toolchain operator is ready and running state")
@@ -71,12 +71,12 @@ func TestToolChainEnabler(t *testing.T) {
 
 	t.Run("delete oauth client and verify", func(t *testing.T) {
 		// given
-		oc, err := operatorClient.GetOAuthClient(toolchainenabler.OAuthClientName)
+		oc, err := operatorClient.GetOAuthClient(config.OAuthClientName)
 		require.NoError(t, err)
 
 		// when
 		err = operatorClient.Delete(context.Background(), oc)
-		require.NoError(t, err, "failed to delete oauth client %s", toolchainenabler.OAuthClientName)
+		require.NoError(t, err, "failed to delete oauth client %s", config.OAuthClientName)
 
 		// then
 		err = verifyResources(t, operatorClient, namespace)
@@ -85,12 +85,12 @@ func TestToolChainEnabler(t *testing.T) {
 
 	t.Run("delete cluster role binding and verify", func(t *testing.T) {
 		// given
-		clusterRoleBinding, err := operatorClient.GetClusterRoleBinding(toolchainenabler.CRBName)
+		clusterRoleBinding, err := operatorClient.GetClusterRoleBinding(config.CRBName)
 		require.NoError(t, err)
 
 		// when
 		err = operatorClient.Delete(context.Background(), clusterRoleBinding)
-		require.NoError(t, err, "failed to delete cluster role binding %s", toolchainenabler.CRBName)
+		require.NoError(t, err, "failed to delete cluster role binding %s", config.CRBName)
 
 		// then
 		err = verifyResources(t, operatorClient, namespace)
@@ -99,12 +99,12 @@ func TestToolChainEnabler(t *testing.T) {
 
 	t.Run("delete sa and verify", func(t *testing.T) {
 		// given
-		sa, err := operatorClient.GetServiceAccount(namespace, toolchainenabler.SAName)
+		sa, err := operatorClient.GetServiceAccount(namespace, config.SAName)
 		require.NoError(t, err)
 
 		// when
 		err = operatorClient.Delete(context.Background(), sa)
-		require.NoError(t, err, "failed to delete service account %s/%s", namespace, toolchainenabler.SAName)
+		require.NoError(t, err, "failed to delete service account %s/%s", namespace, config.SAName)
 
 		// then
 		err = verifyResources(t, operatorClient, namespace)

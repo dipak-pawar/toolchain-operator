@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
+	. "github.com/fabric8-services/toolchain-operator/pkg/config"
+	. "github.com/fabric8-services/toolchain-operator/test"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -73,12 +75,18 @@ func TestToolChainEnablerController(t *testing.T) {
 			err := oauthv1.Install(s)
 			require.NoError(t, err)
 
+			reset := SetEnv(Env("CLUSTER_NAME", "dsaas-stage"), Env("TC_CLIENT_ID", "toolchain"), Env("TC_CLIENT_SECRET", "secret"), Env("AUTH_URL", "http://auth"), Env("CLUSTER_URL", "http://cluster"))
+			defer reset()
+
 			//given
 			// Create a fake client to mock API calls.
 			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
-			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
+			conf, err := NewConfiguration()
+			require.NoError(t, err)
+
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: conf}
 
 			req := reconcileRequest(Name)
 

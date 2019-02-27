@@ -31,6 +31,8 @@ create-resources:
 	@oc create -f $(DEPLOY_DIR)/cluster_role.yaml
 	@echo "Creating ClusterRoleBinding"
 	@oc create -f $(DEPLOY_DIR)/cluster_role_binding.yaml
+	@echo "Creating Secret"
+	@oc create -f $(DEPLOY_DIR)/operator.config.yaml
 
 .PHONY: create-cr
 create-cr:
@@ -76,6 +78,8 @@ clean-resources:
 	@oc delete -f $(DEPLOY_DIR)/crds/codeready_v1alpha1_toolchainenabler_crd.yaml || true
 	@echo "Deleting OAuthClient 'codeready-toolchain'"
 	@oc delete oauthclient codeready-toolchain || true
+	@echo "Deleting Secret"
+	@oc delete -f $(DEPLOY_DIR)/operator.config.yaml || true
 
 .PHONY: deploy-operator
 deploy-operator: build build-image deploy-operator-only

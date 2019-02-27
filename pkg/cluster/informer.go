@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	routev1 "github.com/openshift/api/route/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,19 +14,40 @@ var log = logf.Log.WithName("cluster_config_informer")
 
 const RouteName = "toolchain-route"
 
-type Informer struct {
-	oc client.Client
-	ns string
+type informer struct {
+	oc          client.Client
+	ns          string
+	clusterName string
 }
 
-type RouteOption func(r *routev1.Route)
-
-func NewInformer(oc client.Client, ns string) Informer {
-	return Informer{oc, ns}
+type Informer interface {
+	clusterConfiguration() (*clusterclient.CreateClusterData, error)
+	clusterURL() string
+	routingSubDomain(options ...RouteOption) (string, error)
 }
 
-// routingSubDomain returns default routing subdomain configured in openshift master. For more info check https://bit.ly/2Dj2kfh
-func (i Informer) routingSubDomain(options ...RouteOption) (string, error) {
+func NewInformer(oc client.Client, ns string, clusterName string) Informer {
+	return informer{oc, ns, clusterName}
+}
+
+func (i informer) clusterURL() string {
+	return `https://api.` + i.clusterName + `.openshift.com/`
+}
+
+func (i informer) clusterConfiguration() (*clusterclient.CreateClusterData, error) {
+	return buildClusterConfiguration(
+		WithName(i),
+		WithAppDNS(i),
+		WithAPIURL(i),
+		WithOAuthClient(i),
+		WithServiceAccount(i),
+		WithTokenProvider(),
+		WithTypeOSD(),
+	)
+}
+
+// routingSubDomain returns default routing sub-domain configured in openshift master. For more info check https://bit.ly/2Dj2kfh
+func (i informer) routingSubDomain(options ...RouteOption) (string, error) {
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RouteName,
@@ -69,4 +91,17 @@ func routeHostSubDomain(h string) string {
 	}
 
 	return ""
+}
+
+type RouteOption func(r *routev1.Route)
+
+func buildClusterConfiguration(opts ...ConfigOption) (*clusterclient.CreateClusterData, error) {
+	var cluster clusterclient.CreateClusterData
+	for _, opt := range opts {
+		err := opt(&cluster)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &cluster, nil
 }

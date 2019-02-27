@@ -11,6 +11,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
+	"github.com/fabric8-services/toolchain-operator/pkg/cluster"
+	"github.com/fabric8-services/toolchain-operator/pkg/config"
 	"github.com/fabric8-services/toolchain-operator/pkg/secret"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	errs "github.com/pkg/errors"
@@ -28,22 +30,23 @@ import (
 
 var log = logf.Log.WithName("controller_toolchainenabler")
 
-const (
-	Name            = "toolchain-enabler"
-	SAName          = "toolchain-sre"
-	OAuthClientName = "codeready-toolchain"
-	CRBName         = "system:toolchain-enabler:self-provisioner"
-)
-
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	reconciler, err := newReconciler(mgr)
+	if err != nil {
+		return err
+	}
+	return add(mgr, reconciler)
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+	c, err := config.NewConfiguration()
+	if err != nil {
+		return nil, errs.Wrapf(err, "something went wrong while creating configuration")
+	}
+	return &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme(), config: c}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -84,6 +87,7 @@ type ReconcileToolChainEnabler struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config *config.Configuration
 }
 
 // Reconcile reads that state of the cluster for a ToolChainEnabler object and makes changes based on the state read
@@ -125,7 +129,7 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	if err := r.ensureClusterRoleBinding(instance, SAName, instance.Namespace); err != nil {
+	if err := r.ensureClusterRoleBinding(instance, config.SAName, instance.Namespace); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -133,15 +137,22 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	reqLogger.Info("Skipping reconcile as all required objects are created and exist", "Service Account", SAName, "ClusterRoleBindning", CRBName, "OAuthClient", OAuthClientName)
+	if err := r.SaveClusterConfiguration(namespacedName.Namespace); err != nil {
+		// Do not reconcile, only log the error, as it's depending on remote auth/cluster service and it's configuration
+		reqLogger.Error(err, "failed to update cluster configuration in cluster management service")
+		return reconcile.Result{}, nil
+	}
+	reqLogger.Info("cluster configuration has been updated to cluster management service successfully")
+
+	reqLogger.Info("Skipping reconcile as all required objects are created and exist", "Service Account", config.SAName, "ClusterRoleBindning", config.CRBName, "OAuthClient", config.OAuthClientName)
 	return reconcile.Result{}, nil
 }
 
 // ensureSA creates Service Account if not exists
-func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEnabler) error {
+func (r ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEnabler) error {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SAName,
+			Name:      config.SAName,
 			Namespace: tce.Namespace,
 		},
 	}
@@ -151,25 +162,25 @@ func (r *ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEna
 		return err
 	}
 
-	if _, err := r.client.GetServiceAccount(tce.Namespace, SAName); err != nil {
+	if _, err := r.client.GetServiceAccount(tce.Namespace, config.SAName); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("creating a new service sccount ", "namespace", sa.Namespace, "name", sa.Name)
 			if err := r.client.CreateServiceAccount(sa); err != nil {
 				return err
 			}
 
-			log.Info(fmt.Sprintf("service account %s created successfully", SAName))
+			log.Info(fmt.Sprintf("service account %s created successfully", config.SAName))
 			return nil
 		}
-		return errs.Wrapf(err, "failed to get service account %s", SAName)
+		return errs.Wrapf(err, "failed to get service account %s", config.SAName)
 	}
-	log.Info(fmt.Sprintf("service account %s already exists", SAName))
+	log.Info(fmt.Sprintf("service account %s already exists", config.SAName))
 
 	return nil
 }
 
 // ensureClusterRoleBinding ensures ClusterRoleBinding for Service Account with self-provisioner Role
-func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
+func (r ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
 	crb := &rbacv1.ClusterRoleBinding{
 		Subjects: []rbacv1.Subject{
 			{
@@ -186,32 +197,32 @@ func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alp
 		},
 	}
 
-	crb.SetName(CRBName)
+	crb.SetName(config.CRBName)
 
 	// Set ToolChainEnabler instance as the owner and controller
 	if err := controllerutil.SetControllerReference(tce, crb, r.scheme); err != nil {
 		return err
 	}
-	if _, err := r.client.GetClusterRoleBinding(CRBName); err != nil {
+	if _, err := r.client.GetClusterRoleBinding(config.CRBName); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info(`adding "self-provisioner" cluster role to `, "Service Account", saName)
 			if err := r.client.CreateClusterRoleBinding(crb); err != nil {
 				return err
 			}
 
-			log.Info(fmt.Sprintf("clusterrolebinding %s created successfully", CRBName))
+			log.Info(fmt.Sprintf("clusterrolebinding %s created successfully", config.CRBName))
 			return nil
 		}
-		return errs.Wrapf(err, "failed to get clusterrolebinding %s", CRBName)
+		return errs.Wrapf(err, "failed to get clusterrolebinding %s", config.CRBName)
 	}
 
-	log.Info(fmt.Sprintf("clusterrolebinding %s already exists", CRBName))
+	log.Info(fmt.Sprintf("clusterrolebinding %s already exists", config.CRBName))
 
 	return nil
 }
 
 // ensureOAuthClient creates OAuthClient if not exists
-func (r *ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.ToolChainEnabler) error {
+func (r ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.ToolChainEnabler) error {
 	randomString, err := secret.CreateRandomString(256)
 	if err != nil {
 		return errs.Wrapf(err, "failed to generate random string to be used as secret for oauthclient")
@@ -219,7 +230,7 @@ func (r *ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Too
 	var ageSeconds int32
 	oc := &oauthv1.OAuthClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: OAuthClientName,
+			Name: config.OAuthClientName,
 		},
 		Secret:                   randomString,
 		GrantMethod:              oauthv1.GrantHandlerAuto,
@@ -232,20 +243,27 @@ func (r *ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Too
 		return err
 	}
 
-	if _, err = r.client.GetOAuthClient(OAuthClientName); err != nil {
+	if _, err = r.client.GetOAuthClient(config.OAuthClientName); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("creating", "oauthclient", OAuthClientName)
+			log.Info("creating", "oauthclient", config.OAuthClientName)
 			if err := r.client.CreateOAuthClient(oc); err != nil {
 				return err
 			}
 
-			log.Info(fmt.Sprintf("oauth client %s created successfully", OAuthClientName))
+			log.Info(fmt.Sprintf("oauth client %s created successfully", config.OAuthClientName))
 			return nil
 		}
-		return errs.Wrapf(err, "failed to get oauthclient %s", OAuthClientName)
+		return errs.Wrapf(err, "failed to get oauthclient %s", config.OAuthClientName)
 	}
 
-	log.Info(fmt.Sprintf("oauth client %s already exists", OAuthClientName))
+	log.Info(fmt.Sprintf("oauth client %s already exists", config.OAuthClientName))
 
 	return nil
+}
+
+func (r ReconcileToolChainEnabler) SaveClusterConfiguration(ns string) error {
+	informer := cluster.NewInformer(r.client, ns, r.config.GetClusterName())
+	service := cluster.NewClusterService(informer, r.config)
+
+	return service.CreateCluster(context.Background())
 }
