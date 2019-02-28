@@ -138,13 +138,13 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	}
 
 	if err := r.SaveClusterConfiguration(namespacedName.Namespace); err != nil {
-		// Do not reconcile, only log the error, as it's depending on remote auth/cluster service and it's configuration
 		reqLogger.Error(err, "failed to update cluster configuration in cluster management service")
-		return reconcile.Result{}, nil
+		// requeue as we might have failures while getting cluster information or posting this data to cluster management service.
+		// this will always give errors and requeue if you don't have auth and cluster services ready and available.
+		return reconcile.Result{}, err
 	}
-	reqLogger.Info("cluster configuration has been updated to cluster management service successfully")
 
-	reqLogger.Info("Skipping reconcile as all required objects are created and exist", "Service Account", config.SAName, "ClusterRoleBindning", config.CRBName, "OAuthClient", config.OAuthClientName)
+	reqLogger.Info("Skipping reconcile as cluster configuration has been updated to cluster management service successfully")
 	return reconcile.Result{}, nil
 }
 

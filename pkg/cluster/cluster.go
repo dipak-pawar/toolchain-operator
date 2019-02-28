@@ -2,10 +2,9 @@ package cluster
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-auth/goasupport"
-	"github.com/fabric8-services/fabric8-auth/rest"
 	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
 	"github.com/fabric8-services/fabric8-common/auth"
+	"github.com/fabric8-services/fabric8-common/goasupport"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/pkg/errors"
@@ -50,8 +49,16 @@ func (s ClusterService) CreateCluster(ctx context.Context, options ...httpsuppor
 	if err != nil {
 		return errors.Wrapf(err, "failed to add cluster configuration for cluster %s", clusterURL)
 	}
-	defer rest.CloseResponse(res)
-	bodyString := rest.ReadBody(res.Body)
+	defer func() {
+		if err := httpsupport.CloseResponse(res); err != nil {
+			log.Error(err, "error during closing response body when adding cluster configuration")
+		}
+	}()
+
+	bodyString, err := httpsupport.ReadBody(res.Body)
+	if err != nil {
+		return errors.Wrapf(err, "unable to read response while saving cluster configuration")
+	}
 	if res.StatusCode != http.StatusCreated {
 		err := errors.Errorf("received unexpected response code while adding cluster configuration in cluster management service. Response status: %s. Response body: %s", res.Status, bodyString)
 		log.Error(err, "failed to add cluster configuration in cluster management service",
@@ -85,12 +92,14 @@ func (c jwtSASigner) createSignedClient() (*clusterclient.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
 
-	signer := &goasupport.JWTSigner{Token: token}
-	cln.SetJWTSigner(signer)
+	cln.SetJWTSigner(
+		&goaclient.JWTSigner{
+			TokenSource: &goaclient.StaticTokenSource{
+				StaticToken: &goaclient.StaticToken{
+					Value: token,
+					Type:  "Bearer"}}})
+
 	return cln, nil
 }
 

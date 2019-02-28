@@ -3,6 +3,7 @@ package cluster
 import (
 	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
 	"github.com/fabric8-services/toolchain-operator/pkg/config"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"k8s.io/api/core/v1"
 )
@@ -62,20 +63,25 @@ func WithServiceAccount(i informer, options ...SASecretOption) ConfigOption {
 			opt(sa)
 		}
 
-		if len(sa.Secrets) > 0 {
-			var saSecret *v1.Secret
-			for _, s := range sa.Secrets {
-				sec, err := i.oc.GetSecret(i.ns, s.Name)
-				if err != nil {
-					return err
-				}
-				// we are not interested in `kubernetes.io/dockercfg`
-				if sec.Type == v1.SecretTypeServiceAccountToken {
-					saSecret = sec
-				}
-			}
-			c.ServiceAccountToken = string(saSecret.Data["token"])
+		if len(sa.Secrets) == 0 {
+			return errors.Errorf("couldn't find any secret reference for sa %s", sa.Name)
 		}
+
+		var saSecret *v1.Secret
+		for _, s := range sa.Secrets {
+			sec, err := i.oc.GetSecret(i.ns, s.Name)
+			if err != nil {
+				return err
+			}
+			// we are not interested in `kubernetes.io/dockercfg`
+			if sec.Type == v1.SecretTypeServiceAccountToken {
+				saSecret = sec
+			}
+		}
+		if saSecret == nil {
+			return errors.Errorf("couldn't find any secret reference for sa %s of type %s", sa.Name, v1.SecretTypeServiceAccountToken)
+		}
+		c.ServiceAccountToken = string(saSecret.Data["token"])
 
 		return nil
 	}
