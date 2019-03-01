@@ -21,8 +21,7 @@ type informer struct {
 }
 
 type Informer interface {
-	clusterConfiguration() (*clusterclient.CreateClusterData, error)
-	clusterURL() string
+	ClusterConfiguration(options ...SASecretOption) (*clusterclient.CreateClusterData, error)
 	routingSubDomain(options ...RouteOption) (string, error)
 }
 
@@ -30,17 +29,13 @@ func NewInformer(oc client.Client, ns string, clusterName string) Informer {
 	return informer{oc, ns, clusterName}
 }
 
-func (i informer) clusterURL() string {
-	return `https://api.` + i.clusterName + `.openshift.com/`
-}
-
-func (i informer) clusterConfiguration() (*clusterclient.CreateClusterData, error) {
+func (i informer) ClusterConfiguration(options ...SASecretOption) (*clusterclient.CreateClusterData, error) {
 	return buildClusterConfiguration(
 		WithName(i),
 		WithAppDNS(i),
 		WithAPIURL(i),
 		WithOAuthClient(i),
-		WithServiceAccount(i),
+		WithServiceAccount(i, options...),
 		WithTokenProvider(),
 		WithTypeOSD(),
 	)

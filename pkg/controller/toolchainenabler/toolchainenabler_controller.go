@@ -11,6 +11,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
+	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/toolchain-operator/pkg/cluster"
 	"github.com/fabric8-services/toolchain-operator/pkg/config"
 	"github.com/fabric8-services/toolchain-operator/pkg/secret"
@@ -26,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"time"
 )
 
 var log = logf.Log.WithName("controller_toolchainenabler")
@@ -137,11 +140,14 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	if err := r.SaveClusterConfiguration(namespacedName.Namespace); err != nil {
-		reqLogger.Error(err, "failed to update cluster configuration in cluster management service")
-		// requeue as we might have failures while getting cluster information or posting this data to cluster management service.
-		// this will always give errors and requeue if you don't have auth and cluster services ready and available.
+	clusterData, err := r.clusterInfo(namespacedName.Namespace)
+	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	if err := r.saveClusterConfiguration(clusterData); err != nil {
+		// requeue after 5 seconds in failed while calling remote cluster service
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	reqLogger.Info("Skipping reconcile as cluster configuration has been updated to cluster management service successfully")
@@ -261,9 +267,12 @@ func (r ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Tool
 	return nil
 }
 
-func (r ReconcileToolChainEnabler) SaveClusterConfiguration(ns string) error {
+func (r ReconcileToolChainEnabler) clusterInfo(ns string, options ...cluster.SASecretOption) (*clusterclient.CreateClusterData, error) {
 	informer := cluster.NewInformer(r.client, ns, r.config.GetClusterName())
-	service := cluster.NewClusterService(informer, r.config)
+	return informer.ClusterConfiguration(options...)
+}
 
-	return service.CreateCluster(context.Background())
+func (r ReconcileToolChainEnabler) saveClusterConfiguration(data *clusterclient.CreateClusterData, options ...httpsupport.HTTPClientOption) error {
+	service := cluster.NewClusterService(r.config)
+	return service.CreateCluster(context.Background(), data, options...)
 }

@@ -19,7 +19,7 @@ func WithName(i informer) ConfigOption {
 
 func WithAPIURL(i informer) ConfigOption {
 	return func(c *clusterclient.CreateClusterData) error {
-		c.APIURL = i.clusterURL()
+		c.APIURL = `https://api.` + i.clusterName + `.openshift.com/`
 		return nil
 	}
 }

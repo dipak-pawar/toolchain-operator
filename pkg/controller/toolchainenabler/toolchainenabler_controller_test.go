@@ -9,6 +9,9 @@ import (
 
 	"context"
 	"fmt"
+	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
+	"github.com/fabric8-services/fabric8-common/httpsupport"
+	"github.com/fabric8-services/toolchain-operator/pkg/apis"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	. "github.com/fabric8-services/toolchain-operator/pkg/config"
 	. "github.com/fabric8-services/toolchain-operator/test"
@@ -16,9 +19,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/h2non/gock.v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"net/http"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -68,38 +74,6 @@ func TestToolChainEnablerController(t *testing.T) {
 			//then
 			_, oautherr := cl.GetOAuthClient(OAuthClientName)
 			assert.EqualError(t, err, fmt.Sprintf("failed to get oauthclient %s: %s", OAuthClientName, oautherr))
-		})
-
-		t.Run("with ToolChainEnabler custom resource", func(t *testing.T) {
-			// register openshift resource OAuthClient specific schema
-			err := oauthv1.Install(s)
-			require.NoError(t, err)
-
-			reset := SetEnv(Env("CLUSTER_NAME", "dsaas-stage"), Env("TC_CLIENT_ID", "toolchain"), Env("TC_CLIENT_SECRET", "secret"), Env("AUTH_URL", "http://auth"), Env("CLUSTER_URL", "http://cluster"))
-			defer reset()
-
-			//given
-			// Create a fake client to mock API calls.
-			cl := client.NewClient(fake.NewFakeClient(objs...))
-
-			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
-			conf, err := NewConfiguration()
-			require.NoError(t, err)
-
-			r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: conf}
-
-			req := reconcileRequest(Name)
-
-			//when
-			res, err := r.Reconcile(req)
-
-			//then
-			require.NoError(t, err, "reconcile is failing")
-			assert.False(t, res.Requeue, "reconcile requested requeue request")
-
-			assertSA(t, cl)
-			assertClusterRoleBinding(t, cl)
-			assertOAuthClient(t, cl)
 		})
 
 		t.Run("without ToolChainEnabler custom resource", func(t *testing.T) {
@@ -285,8 +259,8 @@ func TestToolChainEnablerController(t *testing.T) {
 	})
 
 	t.Run("OAuthClient", func(t *testing.T) {
-		// register openshift resource OAuthClient specific schema
-		err := oauthv1.Install(s)
+		// register openshift resources specific schema
+		err := apis.AddToScheme(scheme.Scheme)
 		require.NoError(t, err)
 
 		t.Run("not exists", func(t *testing.T) {
@@ -362,6 +336,136 @@ func TestToolChainEnablerController(t *testing.T) {
 			assert.Error(t, err, "failed to get oauthclient %s: %s", OAuthClientName, errMsg)
 		})
 	})
+
+	t.Run("cluster config", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			// given
+			// register openshift resources specific schema
+			err := apis.AddToScheme(scheme.Scheme)
+			require.NoError(t, err)
+			reset := SetEnv(Env("CLUSTER_NAME", "dsaas-stage"), Env("TC_CLIENT_ID", "toolchain"), Env("TC_CLIENT_SECRET", "secret"), Env("AUTH_URL", "http://auth"), Env("CLUSTER_URL", "http://cluster"))
+			defer reset()
+
+			conf, err := NewConfiguration()
+			require.NoError(t, err)
+
+			// Create a fake client to mock API calls.
+			cl := client.NewClient(fake.NewFakeClient(objs...))
+
+			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: conf}
+
+			// create sa, rolebinding, oauthclient resources
+			req := reconcileRequest(Name)
+			instance := &codereadyv1alpha1.ToolChainEnabler{}
+			err = r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
+			err = r.ensureClusterRoleBinding(instance, Name, Namespace)
+			require.NoError(t, err)
+			err = r.ensureSA(instance)
+			require.NoError(t, err)
+			err = r.ensureOAuthClient(instance)
+			require.NoError(t, err)
+
+			sa, err := r.client.GetServiceAccount(Namespace, SAName)
+			require.NoError(t, err)
+			// create secrets required to refer in service account
+			saSecretOption := SASecretOption(t, cl, Namespace)
+			saSecretOption(sa)
+
+			//when
+			clusterData, err := r.clusterInfo(Namespace, saSecretOption)
+
+			//then
+			require.NoError(t, err, "reconcile is failing")
+			assertClusterData(t, clusterData)
+		})
+
+		t.Run("fail as sa secret not present", func(t *testing.T) {
+			// given
+			// register openshift resources specific schema
+			err := apis.AddToScheme(scheme.Scheme)
+			require.NoError(t, err)
+			reset := SetEnv(Env("CLUSTER_NAME", "dsaas-stage"), Env("TC_CLIENT_ID", "toolchain"), Env("TC_CLIENT_SECRET", "secret"), Env("AUTH_URL", "http://auth"), Env("CLUSTER_URL", "http://cluster"))
+			defer reset()
+
+			conf, err := NewConfiguration()
+			require.NoError(t, err)
+
+			// Create a fake client to mock API calls.
+			cl := client.NewClient(fake.NewFakeClient(objs...))
+
+			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: conf}
+
+			// create sa, rolebinding, oauthclient resources
+			req := reconcileRequest(Name)
+			instance := &codereadyv1alpha1.ToolChainEnabler{}
+			err = r.client.Get(context.TODO(), req.NamespacedName, instance)
+			require.NoError(t, err)
+			err = r.ensureClusterRoleBinding(instance, Name, Namespace)
+			require.NoError(t, err)
+			err = r.ensureSA(instance)
+			require.NoError(t, err)
+			err = r.ensureOAuthClient(instance)
+			require.NoError(t, err)
+
+			//when
+			_, err = r.clusterInfo(Namespace)
+
+			//then
+			assert.EqualError(t, err, "couldn't find any secret reference for sa toolchain-sre")
+		})
+	})
+
+	t.Run("save cluster config", func(t *testing.T) {
+		// given
+		defer gock.OffAll()
+
+		gock.New("http://auth").
+			Post("api/token").
+			MatchHeader("Content-Type", "application/x-www-form-urlencoded").
+			BodyString(`client_id=bb6d043d-f243-458f-8498-2c18a12dcf47&client_secret=secret&grant_type=client_credentials`).
+			Reply(200).
+			BodyString(`{"access_token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjlNTG5WaWFSa2hWajFHVDlrcFdVa3dISXdVRC13WmZVeFItM0Nwa0UtWHMiLCJ0eXAiOiJKV1QifQ.eyJpYXQiOjE1NTEyNjA3NTIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJqdGkiOiI2OTE1MmU1Mi05ZmNiLTQ3MjEtYjhlZC04MTgxY2UyOTY4ZDgiLCJzY29wZXMiOlsidW1hX3Byb3RlY3Rpb24iXSwic2VydmljZV9hY2NvdW50bmFtZSI6InRvb2xjaGFpbi1vcGVyYXRvciIsInN1YiI6ImJiNmQwNDNkLWYyNDMtNDU4Zi04NDk4LTJjMThhMTJkY2Y0NyJ9.D-t7lrfJ-nd4P62t6oXOrYY364h2yGxw23-2qoRMERdBED2E8pMAOk1yZeCk18FUn1TFslxL2nuYOE9bRL7i8qUQCGTzgFIk8QtIOw8iLSkRRPVHJGSraUSVZqsePgcU4Y_dCEZlEBkR_SPEZ5l5lm7QdfWd-JaCLnQVTW5oRPhEx0B6455UyX6Giy68ySO5WuBl0WHIvEHr6N3rSIZ7cptRAatvb9PEKxyajfBE1uC60jEE5iJwEfzv2BYBr07lhskTxQqno05In21_rRcBMjaLStVLHRVmb62hPw4FC3OGOU1wn9MmhlZVo9VYuVMjpl4qerX1l8ZkhIZpRXCpEg","token_type":"Bearer"}`)
+
+		gock.New("http://cluster").
+			Post("api/clusters").
+			MatchHeader("Authorization", "Bearer "+"eyJhbGciOiJSUzI1NiIsImtpZCI6IjlNTG5WaWFSa2hWajFHVDlrcFdVa3dISXdVRC13WmZVeFItM0Nwa0UtWHMiLCJ0eXAiOiJKV1QifQ.eyJpYXQiOjE1NTEyNjA3NTIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJqdGkiOiI2OTE1MmU1Mi05ZmNiLTQ3MjEtYjhlZC04MTgxY2UyOTY4ZDgiLCJzY29wZXMiOlsidW1hX3Byb3RlY3Rpb24iXSwic2VydmljZV9hY2NvdW50bmFtZSI6InRvb2xjaGFpbi1vcGVyYXRvciIsInN1YiI6ImJiNmQwNDNkLWYyNDMtNDU4Zi04NDk4LTJjMThhMTJkY2Y0NyJ9.D-t7lrfJ-nd4P62t6oXOrYY364h2yGxw23-2qoRMERdBED2E8pMAOk1yZeCk18FUn1TFslxL2nuYOE9bRL7i8qUQCGTzgFIk8QtIOw8iLSkRRPVHJGSraUSVZqsePgcU4Y_dCEZlEBkR_SPEZ5l5lm7QdfWd-JaCLnQVTW5oRPhEx0B6455UyX6Giy68ySO5WuBl0WHIvEHr6N3rSIZ7cptRAatvb9PEKxyajfBE1uC60jEE5iJwEfzv2BYBr07lhskTxQqno05In21_rRcBMjaLStVLHRVmb62hPw4FC3OGOU1wn9MmhlZVo9VYuVMjpl4qerX1l8ZkhIZpRXCpEg").
+			BodyString(`{"data":{"api-url":"https://api.dsaas-stage.openshift.com/","app-dns":"8a09.starter-us-east-2.openshiftapps.com","auth-client-default-scope":"user:full","auth-client-id":"codeready-toolchain","auth-client-secret":"oauthsecret","name":"dsaas-stage","service-account-token":"mysatoken","service-account-username":"system:serviceaccount:config-test:toolchain-sre","token-provider-id":"3d7b75e3-7053-4846-9b64-26cf42717692","type":"OSD"}}`).
+			Reply(201)
+
+		reset := SetEnv(Env("CLUSTER_NAME", "dsaas-stage"), Env("TC_CLIENT_ID", "bb6d043d-f243-458f-8498-2c18a12dcf47"), Env("TC_CLIENT_SECRET", "secret"), Env("AUTH_URL", "http://auth"), Env("CLUSTER_URL", "http://cluster"))
+		defer reset()
+		c, err := NewConfiguration()
+		require.NoError(t, err)
+
+		// Create a fake client to mock API calls.
+		cl := client.NewClient(fake.NewFakeClient(objs...))
+
+		// Create a ReconcileToolChainEnabler object with the scheme and fake client.
+		r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: c}
+
+		tokenID := "3d7b75e3-7053-4846-9b64-26cf42717692"
+		clusterData := &clusterclient.CreateClusterData{
+			Name:                   os.Getenv("CLUSTER_NAME"),
+			APIURL:                 `https://api.` + os.Getenv("CLUSTER_NAME") + `.openshift.com/`,
+			AppDNS:                 "8a09.starter-us-east-2.openshiftapps.com",
+			ServiceAccountToken:    "mysatoken",
+			ServiceAccountUsername: "system:serviceaccount:config-test:toolchain-sre",
+			AuthClientID:           "codeready-toolchain",
+			AuthClientSecret:       "oauthsecret",
+			AuthClientDefaultScope: "user:full",
+			TokenProviderID:        &tokenID,
+			Type:                   "OSD",
+		}
+
+		// when
+		err = r.saveClusterConfiguration(clusterData, httpsupport.WithRoundTripper(http.DefaultTransport))
+
+		//then
+		assert.NoError(t, err)
+	})
 }
 
 func assertSA(t *testing.T, cl client.Client) {
@@ -407,6 +511,19 @@ func assertOAuthClient(t *testing.T, cl client.Client) {
 	assert.NotEmpty(t, actual.Secret)
 	assert.Equal(t, actual.GrantMethod, oauthv1.GrantHandlerAuto)
 	assert.Equal(t, actual.RedirectURIs, []string{"https://auth.openshift.io/"})
+}
+
+func assertClusterData(t *testing.T, data *clusterclient.CreateClusterData) {
+	require.NotNil(t, data)
+
+	assert.Equal(t, data.Name, "dsaas-stage")
+	assert.Equal(t, data.Type, "OSD")
+	assert.Equal(t, data.APIURL, "https://api.dsaas-stage.openshift.com/")
+	assert.Equal(t, data.AuthClientID, "codeready-toolchain")
+	assert.NotEmpty(t, data.AuthClientSecret)
+	assert.Equal(t, data.AuthClientDefaultScope, "user:full")
+	assert.Equal(t, data.ServiceAccountUsername, "system:serviceaccount:codeready-toolchain:toolchain-sre")
+	assert.Equal(t, data.ServiceAccountToken, "mysatoken")
 }
 
 func reconcileRequest(name string) reconcile.Request {

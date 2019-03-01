@@ -21,28 +21,22 @@ type Config interface {
 }
 
 type ClusterService struct {
-	config   Config
-	informer Informer
+	config Config
 }
 
-func NewClusterService(informer Informer, config Config) *ClusterService {
-	return &ClusterService{config, informer}
+func NewClusterService(config Config) *ClusterService {
+	return &ClusterService{config}
 }
 
 // CreateCluster adds cluster configuration in cluster service
-func (s ClusterService) CreateCluster(ctx context.Context, options ...httpsupport.HTTPClientOption) error {
+func (s ClusterService) CreateCluster(ctx context.Context, data *clusterclient.CreateClusterData, options ...httpsupport.HTTPClientOption) error {
 	signer := newJWTSASigner(ctx, s.config, options...)
 	remoteClusterService, err := signer.createSignedClient()
 	if err != nil {
 		return errors.Wrapf(err, "failed to create JWT signer for cluster service")
 	}
 
-	clusterURL := s.informer.clusterURL()
-
-	data, err := s.informer.clusterConfiguration()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get required cluster configuration for cluster %s", clusterURL)
-	}
+	clusterURL := s.config.GetClusterServiceURL()
 	clusterData := &clusterclient.CreateClustersPayload{Data: data}
 
 	res, err := remoteClusterService.CreateClusters(goasupport.ForwardContextRequestID(ctx), clusterclient.CreateClustersPath(), clusterData)

@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
+	"github.com/fabric8-services/toolchain-operator/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -72,32 +73,22 @@ func TestConfigOption(t *testing.T) {
 		t.Run("secret ref", func(t *testing.T) {
 			// given
 			cl := client.NewClient(fake.NewFakeClient())
-
+			ns := "config-test"
 			sa := &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      config.SAName,
-					Namespace: "config-test",
+					Namespace: ns,
 				},
 			}
 			err := cl.CreateServiceAccount(sa)
 			require.NoError(t, err)
 
 			// create secrets for sa as we are using fake client
-			err = cl.CreateSecret(secret("toolchain-sre-1fgd3", "mysatoken", corev1.SecretTypeServiceAccountToken))
-			require.NoError(t, err)
-
-			err = cl.CreateSecret(secret("toolchain-sre-6756s", "mydockertoken", corev1.SecretTypeDockercfg))
-			require.NoError(t, err)
-
-			informer := informer{cl, "config-test", "test-cluster"}
+			saSecretOptions := test.SASecretOption(t, cl, ns)
+			informer := informer{cl, ns, "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
-			SAOption := WithServiceAccount(informer, func(sa *corev1.ServiceAccount) {
-				sa.Secrets = append(sa.Secrets,
-					corev1.ObjectReference{Name: "toolchain-sre-1fgd3", Namespace: "config-test", Kind: "Secret"},
-					corev1.ObjectReference{Name: "toolchain-sre-6756s", Namespace: "config-test", Kind: "Secret"},
-				)
-			})
+			SAOption := WithServiceAccount(informer, saSecretOptions)
 
 			// when
 			err = SAOption(clusterData)
@@ -110,18 +101,19 @@ func TestConfigOption(t *testing.T) {
 
 		t.Run("no secret ref", func(t *testing.T) {
 			// given
+			ns := "config-test"
 			cl := client.NewClient(fake.NewFakeClient())
 
 			sa := &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      config.SAName,
-					Namespace: "config-test",
+					Namespace: ns,
 				},
 			}
 			err := cl.CreateServiceAccount(sa)
 			require.NoError(t, err)
 
-			informer := informer{cl, "config-test", "test-cluster"}
+			informer := informer{cl, ns, "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
 			SAOption := WithServiceAccount(informer)
@@ -147,7 +139,7 @@ func TestConfigOption(t *testing.T) {
 			require.NoError(t, err)
 
 			// create secrets for sa as we are using fake client
-			err = cl.CreateSecret(secret("toolchain-sre-6756s", "mydockertoken", corev1.SecretTypeDockercfg))
+			err = cl.CreateSecret(test.Secret("toolchain-sre-6756s", "config-test", "mydockertoken", corev1.SecretTypeDockercfg))
 			require.NoError(t, err)
 
 			informer := informer{cl, "config-test", "test-cluster"}
@@ -226,18 +218,4 @@ func TestConfigOption(t *testing.T) {
 		// then
 		assert.Equal(t, "OSD", clusterData.Type)
 	})
-}
-
-func secret(name, token string, secretType corev1.SecretType) *corev1.Secret {
-	d := make(map[string][]byte)
-	d["token"] = []byte(token)
-
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "config-test",
-		},
-		Data: d,
-		Type: secretType,
-	}
 }
