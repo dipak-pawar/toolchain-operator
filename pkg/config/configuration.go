@@ -21,7 +21,7 @@ const (
 	CRBName         = "system:toolchain-enabler:self-provisioner"
 )
 
-// Configuration encapsulates the Viper configuration object which stores the configuration data.
+// Inform encapsulates the Viper configuration object which stores the configuration data.
 type Configuration struct {
 	v *viper.Viper
 }

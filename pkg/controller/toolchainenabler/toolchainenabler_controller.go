@@ -268,8 +268,8 @@ func (r ReconcileToolChainEnabler) ensureOAuthClient(tce *codereadyv1alpha1.Tool
 }
 
 func (r ReconcileToolChainEnabler) clusterInfo(ns string, options ...cluster.SASecretOption) (*clusterclient.CreateClusterData, error) {
-	informer := cluster.NewInformer(r.client, ns, r.config.GetClusterName())
-	return informer.ClusterConfiguration(options...)
+	i := cluster.NewInformer(r.client, ns, r.config.GetClusterName())
+	return i.Inform(options...)
 }
 
 func (r ReconcileToolChainEnabler) saveClusterConfiguration(data *clusterclient.CreateClusterData, options ...httpsupport.HTTPClientOption) error {

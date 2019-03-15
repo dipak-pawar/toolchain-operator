@@ -16,10 +16,10 @@ func TestRoutingSubDomain(t *testing.T) {
 	err := apis.AddToScheme(scheme.Scheme)
 	require.NoError(t, err)
 	cl := client.NewClient(fake.NewFakeClient())
-	informer := NewInformer(cl, "test-informer", "test-cluster")
+	i := informer{cl, "test-informer", "test-cluster"}
 
 	// when
-	sd, err := informer.routingSubDomain(withRouteHost("foo-dipakpawar231.8a09.starter-us-east-2.openshiftapps.com"))
+	sd, err := routingSubDomain(i, withRouteHost("foo-dipakpawar231.8a09.starter-us-east-2.openshiftapps.com"))
 
 	//then
 	require.NoError(t, err)

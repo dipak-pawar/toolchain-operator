@@ -24,7 +24,7 @@ func TestConfigOption(t *testing.T) {
 		informer := informer{cl, "test-informer", "test-cluster"}
 
 		clusterData := &clusterclient.CreateClusterData{}
-		nameOption := WithName(informer)
+		nameOption := name(informer)
 
 		// when
 		err := nameOption(clusterData)
@@ -57,7 +57,7 @@ func TestConfigOption(t *testing.T) {
 		informer := informer{cl, "test-informer", "test-cluster"}
 
 		clusterData := &clusterclient.CreateClusterData{}
-		OauthClientOption := WithOAuthClient(informer)
+		OauthClientOption := oauthClient(informer)
 
 		// when
 		err = OauthClientOption(clusterData)
@@ -88,7 +88,7 @@ func TestConfigOption(t *testing.T) {
 			informer := informer{cl, ns, "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
-			SAOption := WithServiceAccount(informer, saSecretOptions)
+			SAOption := serviceAccount(informer, saSecretOptions)
 
 			// when
 			err = SAOption(clusterData)
@@ -116,7 +116,7 @@ func TestConfigOption(t *testing.T) {
 			informer := informer{cl, ns, "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
-			SAOption := WithServiceAccount(informer)
+			SAOption := serviceAccount(informer)
 
 			// when
 			err = SAOption(clusterData)
@@ -145,7 +145,7 @@ func TestConfigOption(t *testing.T) {
 			informer := informer{cl, "config-test", "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
-			SAOption := WithServiceAccount(informer, func(sa *corev1.ServiceAccount) {
+			SAOption := serviceAccount(informer, func(sa *corev1.ServiceAccount) {
 				sa.Secrets = append(sa.Secrets,
 					corev1.ObjectReference{Name: "toolchain-sre-6756s", Namespace: "config-test", Kind: "Secret"},
 				)
@@ -165,7 +165,7 @@ func TestConfigOption(t *testing.T) {
 		cl := client.NewClient(fake.NewFakeClient())
 		informer := informer{cl, "test-informer", "test-cluster"}
 		clusterData := &clusterclient.CreateClusterData{}
-		urlOption := WithAPIURL(informer)
+		urlOption := apiURL(informer)
 
 		// when
 		err := urlOption(clusterData)
@@ -182,7 +182,7 @@ func TestConfigOption(t *testing.T) {
 		cl := client.NewClient(fake.NewFakeClient())
 		informer := informer{cl, "test-informer", "test-cluster"}
 		clusterData := &clusterclient.CreateClusterData{}
-		appDNSOption := WithAppDNS(informer, withRouteHost("foo-dipakpawar231.8a09.starter-us-east-2.openshiftapps.com"))
+		appDNSOption := appDNS(informer, withRouteHost("foo-dipakpawar231.8a09.starter-us-east-2.openshiftapps.com"))
 
 		// when
 		err = appDNSOption(clusterData)
@@ -195,7 +195,7 @@ func TestConfigOption(t *testing.T) {
 	t.Run("token provider", func(t *testing.T) {
 		// given
 		clusterData := &clusterclient.CreateClusterData{}
-		tokenProviderOption := WithTokenProvider()
+		tokenProviderOption := tokenProvider()
 
 		// when
 		err := tokenProviderOption(clusterData)
@@ -209,7 +209,7 @@ func TestConfigOption(t *testing.T) {
 	t.Run("type osd", func(t *testing.T) {
 		// given
 		clusterData := &clusterclient.CreateClusterData{}
-		typeOSDOption := WithTypeOSD()
+		typeOSDOption := typeOSD()
 
 		// when
 		err := typeOSDOption(clusterData)

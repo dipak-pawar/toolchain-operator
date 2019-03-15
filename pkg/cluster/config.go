@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
 	"github.com/fabric8-services/toolchain-operator/pkg/config"
 	"github.com/pkg/errors"
@@ -8,25 +9,25 @@ import (
 	"k8s.io/api/core/v1"
 )
 
-type ConfigOption func(data *clusterclient.CreateClusterData) error
+type configOption func(data *clusterclient.CreateClusterData) error
 
-func WithName(i informer) ConfigOption {
+func name(i informer) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.Name = i.clusterName
 		return nil
 	}
 }
 
-func WithAPIURL(i informer) ConfigOption {
+func apiURL(i informer) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
-		c.APIURL = `https://api.` + i.clusterName + `.openshift.com/`
+		c.APIURL = fmt.Sprintf("https://api.%s.openshift.com/", i.clusterName)
 		return nil
 	}
 }
 
-func WithAppDNS(i informer, options ...RouteOption) ConfigOption {
+func appDNS(i informer, options ...RouteOption) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
-		subDomain, err := i.routingSubDomain(options...)
+		subDomain, err := routingSubDomain(i, options...)
 		if err != nil {
 			return err
 		}
@@ -35,7 +36,7 @@ func WithAppDNS(i informer, options ...RouteOption) ConfigOption {
 	}
 }
 
-func WithOAuthClient(i informer) ConfigOption {
+func oauthClient(i informer) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.AuthClientID = config.OAuthClientName
 		c.AuthClientDefaultScope = "user:full"
@@ -50,9 +51,9 @@ func WithOAuthClient(i informer) ConfigOption {
 	}
 }
 
-func WithServiceAccount(i informer, options ...SASecretOption) ConfigOption {
+func serviceAccount(i informer, options ...SASecretOption) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
-		c.ServiceAccountUsername = `system:serviceaccount:` + i.ns + `:` + config.SAName
+		c.ServiceAccountUsername = fmt.Sprintf("system:serviceaccount:%s:%s", i.ns, config.SAName)
 		sa, err := i.oc.GetServiceAccount(i.ns, config.SAName)
 		if err != nil {
 			return err
@@ -87,7 +88,7 @@ func WithServiceAccount(i informer, options ...SASecretOption) ConfigOption {
 	}
 }
 
-func WithTypeOSD() ConfigOption {
+func typeOSD() configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.Type = "OSD"
 
@@ -95,7 +96,7 @@ func WithTypeOSD() ConfigOption {
 	}
 }
 
-func WithTokenProvider() ConfigOption {
+func tokenProvider() configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		tokenProviderID := uuid.NewV4().String()
 		c.TokenProviderID = &tokenProviderID

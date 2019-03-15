@@ -66,7 +66,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			//when
 			_, err := r.Reconcile(req)
@@ -84,7 +84,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			//when
 			res, err := r.Reconcile(req)
@@ -114,7 +114,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -135,7 +135,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -166,7 +166,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -190,7 +190,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -213,7 +213,7 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			// Mock request to simulate Reconcile() being called on an event for a
 			// watched resource .
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -245,7 +245,7 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			// Mock request to simulate Reconcile() being called on an event for a
 			// watched resource .
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -271,7 +271,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -294,7 +294,7 @@ func TestToolChainEnablerController(t *testing.T) {
 
 			// Mock request to simulate Reconcile() being called on an event for a
 			// watched resource .
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -324,7 +324,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
 
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err := r.client.Get(context.TODO(), req.NamespacedName, instance)
@@ -356,7 +356,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: conf}
 
 			// create sa, rolebinding, oauthclient resources
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err = r.client.Get(context.TODO(), req.NamespacedName, instance)
 			require.NoError(t, err)
@@ -367,11 +367,8 @@ func TestToolChainEnablerController(t *testing.T) {
 			err = r.ensureOAuthClient(instance)
 			require.NoError(t, err)
 
-			sa, err := r.client.GetServiceAccount(Namespace, SAName)
-			require.NoError(t, err)
 			// create secrets required to refer in service account
 			saSecretOption := SASecretOption(t, cl, Namespace)
-			saSecretOption(sa)
 
 			//when
 			clusterData, err := r.clusterInfo(Namespace, saSecretOption)
@@ -399,7 +396,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			r := &ReconcileToolChainEnabler{client: cl, scheme: s, config: conf}
 
 			// create sa, rolebinding, oauthclient resources
-			req := reconcileRequest(Name)
+			req := newReconcileRequest(Name)
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err = r.client.Get(context.TODO(), req.NamespacedName, instance)
 			require.NoError(t, err)
@@ -526,7 +523,7 @@ func assertClusterData(t *testing.T, data *clusterclient.CreateClusterData) {
 	assert.Equal(t, data.ServiceAccountToken, "mysatoken")
 }
 
-func reconcileRequest(name string) reconcile.Request {
+func newReconcileRequest(name string) reconcile.Request {
 	return reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      name,

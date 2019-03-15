@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -41,11 +40,12 @@ func SASecretOption(t *testing.T, cl client.Client, ns string) func(sa *corev1.S
 	require.NoError(t, err)
 
 	return func(sa *corev1.ServiceAccount) {
-		fmt.Println(sa.Secrets)
-		sa.Secrets = append(sa.Secrets,
-			corev1.ObjectReference{Name: "toolchain-sre-1fgd3", Namespace: ns, Kind: "Secret"},
-			corev1.ObjectReference{Name: "toolchain-sre-6756s", Namespace: ns, Kind: "Secret"},
-		)
+		if sa != nil {
+			sa.Secrets = append(sa.Secrets,
+				corev1.ObjectReference{Name: "toolchain-sre-1fgd3", Namespace: ns, Kind: "Secret"},
+				corev1.ObjectReference{Name: "toolchain-sre-6756s", Namespace: ns, Kind: "Secret"},
+			)
+		}
 	}
 }
 
