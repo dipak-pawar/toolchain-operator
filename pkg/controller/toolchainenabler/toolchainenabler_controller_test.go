@@ -360,8 +360,10 @@ func TestToolChainEnablerController(t *testing.T) {
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err = r.client.Get(context.TODO(), req.NamespacedName, instance)
 			require.NoError(t, err)
-			err = r.ensureClusterRoleBinding(instance, Name, Namespace)
+			err = r.ensureClusterRoleBinding(instance, SAName, Namespace)
 			require.NoError(t, err)
+			assertClusterRoleBinding(t, cl)
+
 			err = r.ensureSA(instance)
 			require.NoError(t, err)
 			err = r.ensureOAuthClient(instance)
@@ -400,8 +402,9 @@ func TestToolChainEnablerController(t *testing.T) {
 			instance := &codereadyv1alpha1.ToolChainEnabler{}
 			err = r.client.Get(context.TODO(), req.NamespacedName, instance)
 			require.NoError(t, err)
-			err = r.ensureClusterRoleBinding(instance, Name, Namespace)
+			err = r.ensureClusterRoleBinding(instance, SAName, Namespace)
 			require.NoError(t, err)
+			assertClusterRoleBinding(t, cl)
 			err = r.ensureSA(instance)
 			require.NoError(t, err)
 			err = r.ensureOAuthClient(instance)
