@@ -146,7 +146,8 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	}
 
 	if err := r.saveClusterConfiguration(clusterData); err != nil {
-		// requeue after 5 seconds in failed while calling remote cluster service
+		log.Error(err, "failed to save cluster configuration in cluster service", "cluster_service_url", r.config.GetClusterServiceURL())
+		// requeue after 5 seconds if failed while calling remote cluster service
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
