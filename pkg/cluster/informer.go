@@ -8,21 +8,21 @@ import (
 
 var log = logf.Log.WithName("cluster_config_informer")
 
-type informer struct {
+type configInformer struct {
 	oc          client.Client
 	ns          string
 	clusterName string
 }
 
-type Informer interface {
+type ConfigInformer interface {
 	Inform(options ...SASecretOption) (*clusterclient.CreateClusterData, error)
 }
 
-func NewInformer(oc client.Client, ns string, clusterName string) Informer {
-	return informer{oc, ns, clusterName}
+func NewConfigInformer(oc client.Client, ns string, clusterName string) ConfigInformer {
+	return configInformer{oc, ns, clusterName}
 }
 
-func (i informer) Inform(options ...SASecretOption) (*clusterclient.CreateClusterData, error) {
+func (i configInformer) Inform(options ...SASecretOption) (*clusterclient.CreateClusterData, error) {
 	return buildClusterConfiguration(
 		name(i),
 		appDNS(i),

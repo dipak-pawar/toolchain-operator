@@ -10,7 +10,7 @@ import (
 const RouteName = "toolchain-route"
 
 // routingSubDomain returns default routing sub-domain configured in openshift master. For more info check https://bit.ly/2Dj2kfh
-func routingSubDomain(i informer, options ...RouteOption) (string, error) {
+func routingSubDomain(i configInformer, options ...RouteOption) (string, error) {
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RouteName,

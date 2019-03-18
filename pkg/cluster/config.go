@@ -11,21 +11,21 @@ import (
 
 type configOption func(data *clusterclient.CreateClusterData) error
 
-func name(i informer) configOption {
+func name(i configInformer) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.Name = i.clusterName
 		return nil
 	}
 }
 
-func apiURL(i informer) configOption {
+func apiURL(i configInformer) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.APIURL = fmt.Sprintf("https://api.%s.openshift.com/", i.clusterName)
 		return nil
 	}
 }
 
-func appDNS(i informer, options ...RouteOption) configOption {
+func appDNS(i configInformer, options ...RouteOption) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		subDomain, err := routingSubDomain(i, options...)
 		if err != nil {
@@ -36,7 +36,7 @@ func appDNS(i informer, options ...RouteOption) configOption {
 	}
 }
 
-func oauthClient(i informer) configOption {
+func oauthClient(i configInformer) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.AuthClientID = config.OAuthClientName
 		c.AuthClientDefaultScope = "user:full"
@@ -51,7 +51,7 @@ func oauthClient(i informer) configOption {
 	}
 }
 
-func serviceAccount(i informer, options ...SASecretOption) configOption {
+func serviceAccount(i configInformer, options ...SASecretOption) configOption {
 	return func(c *clusterclient.CreateClusterData) error {
 		c.ServiceAccountUsername = fmt.Sprintf("system:serviceaccount:%s:%s", i.ns, config.SAName)
 		sa, err := i.oc.GetServiceAccount(i.ns, config.SAName)

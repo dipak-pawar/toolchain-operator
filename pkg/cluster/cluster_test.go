@@ -32,7 +32,7 @@ func TestSaveClusterOK(t *testing.T) {
 	c, err := config.NewConfiguration()
 	require.NoError(t, err)
 
-	i := DummyInformer{}
+	i := dummyClusterConfigInformer{}
 	clusterData, err := i.Inform()
 	require.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestSaveClusterFail(t *testing.T) {
 		c, err := config.NewConfiguration()
 		require.NoError(t, err)
 
-		i := DummyInformer{}
+		i := dummyClusterConfigInformer{}
 		clusterData, err := i.Inform()
 		require.NoError(t, err)
 
@@ -99,7 +99,7 @@ func TestSaveClusterFail(t *testing.T) {
 		c, err := config.NewConfiguration()
 		require.NoError(t, err)
 
-		i := DummyInformer{}
+		i := dummyClusterConfigInformer{}
 		clusterData, err := i.Inform()
 		require.NoError(t, err)
 
@@ -129,7 +129,7 @@ func TestSaveClusterFail(t *testing.T) {
 		c, err := config.NewConfiguration()
 		require.NoError(t, err)
 
-		i := DummyInformer{}
+		i := dummyClusterConfigInformer{}
 		clusterData, err := i.Inform()
 		require.NoError(t, err)
 
@@ -143,10 +143,10 @@ func TestSaveClusterFail(t *testing.T) {
 	})
 }
 
-type DummyInformer struct {
+type dummyClusterConfigInformer struct {
 }
 
-func (d DummyInformer) Inform(options ...SASecretOption) (*clusterclient.CreateClusterData, error) {
+func (d dummyClusterConfigInformer) Inform(options ...SASecretOption) (*clusterclient.CreateClusterData, error) {
 	tokenID := "3d7b75e3-7053-4846-9b64-26cf42717692"
 	return &clusterclient.CreateClusterData{
 		Name:                   os.Getenv("CLUSTER_NAME"),

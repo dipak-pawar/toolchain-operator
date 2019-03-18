@@ -20,16 +20,16 @@ type Config interface {
 	GetClusterName() string
 }
 
-type ClusterService struct {
+type clusterService struct {
 	config Config
 }
 
-func NewClusterService(config Config) *ClusterService {
-	return &ClusterService{config}
+func NewClusterService(config Config) *clusterService {
+	return &clusterService{config}
 }
 
 // CreateCluster adds cluster configuration in cluster service
-func (s ClusterService) CreateCluster(ctx context.Context, data *clusterclient.CreateClusterData, options ...httpsupport.HTTPClientOption) error {
+func (s clusterService) CreateCluster(ctx context.Context, data *clusterclient.CreateClusterData, options ...httpsupport.HTTPClientOption) error {
 	signer := newJWTSASigner(ctx, s.config, options...)
 	remoteClusterService, err := signer.createSignedClient()
 	if err != nil {

@@ -21,7 +21,7 @@ func TestConfigOption(t *testing.T) {
 	t.Run("name", func(t *testing.T) {
 		// given
 		cl := client.NewClient(fake.NewFakeClient())
-		informer := informer{cl, "test-informer", "test-cluster"}
+		informer := configInformer{cl, "test-configInformer", "test-cluster"}
 
 		clusterData := &clusterclient.CreateClusterData{}
 		nameOption := name(informer)
@@ -54,7 +54,7 @@ func TestConfigOption(t *testing.T) {
 		err = cl.CreateOAuthClient(oc)
 		require.NoError(t, err)
 
-		informer := informer{cl, "test-informer", "test-cluster"}
+		informer := configInformer{cl, "test-configInformer", "test-cluster"}
 
 		clusterData := &clusterclient.CreateClusterData{}
 		OauthClientOption := oauthClient(informer)
@@ -85,7 +85,7 @@ func TestConfigOption(t *testing.T) {
 
 			// create secrets for sa as we are using fake client
 			saSecretOptions := test.SASecretOption(t, cl, ns)
-			informer := informer{cl, ns, "test-cluster"}
+			informer := configInformer{cl, ns, "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
 			SAOption := serviceAccount(informer, saSecretOptions)
@@ -113,7 +113,7 @@ func TestConfigOption(t *testing.T) {
 			err := cl.CreateServiceAccount(sa)
 			require.NoError(t, err)
 
-			informer := informer{cl, ns, "test-cluster"}
+			informer := configInformer{cl, ns, "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
 			SAOption := serviceAccount(informer)
@@ -142,7 +142,7 @@ func TestConfigOption(t *testing.T) {
 			err = cl.CreateSecret(test.Secret("toolchain-sre-6756s", "config-test", "mydockertoken", corev1.SecretTypeDockercfg))
 			require.NoError(t, err)
 
-			informer := informer{cl, "config-test", "test-cluster"}
+			informer := configInformer{cl, "config-test", "test-cluster"}
 
 			clusterData := &clusterclient.CreateClusterData{}
 			SAOption := serviceAccount(informer, func(sa *corev1.ServiceAccount) {
@@ -163,7 +163,7 @@ func TestConfigOption(t *testing.T) {
 	t.Run("cluster url", func(t *testing.T) {
 		// given
 		cl := client.NewClient(fake.NewFakeClient())
-		informer := informer{cl, "test-informer", "test-cluster"}
+		informer := configInformer{cl, "test-configInformer", "test-cluster"}
 		clusterData := &clusterclient.CreateClusterData{}
 		urlOption := apiURL(informer)
 
@@ -180,7 +180,7 @@ func TestConfigOption(t *testing.T) {
 		err := apis.AddToScheme(scheme.Scheme)
 		require.NoError(t, err)
 		cl := client.NewClient(fake.NewFakeClient())
-		informer := informer{cl, "test-informer", "test-cluster"}
+		informer := configInformer{cl, "test-configInformer", "test-cluster"}
 		clusterData := &clusterclient.CreateClusterData{}
 		appDNSOption := appDNS(informer, withRouteHost("foo-dipakpawar231.8a09.starter-us-east-2.openshiftapps.com"))
 
