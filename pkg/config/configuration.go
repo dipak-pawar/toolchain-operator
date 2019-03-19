@@ -20,7 +20,7 @@ const (
 	OAuthClientName = "codeready-toolchain"
 )
 
-// Inform encapsulates the Viper configuration object which stores the configuration data.
+// Configuration encapsulates the Viper configuration object which stores the configuration data.
 type Configuration struct {
 	v *viper.Viper
 }
