@@ -33,6 +33,8 @@ create-resources:
 	@oc create -f $(DEPLOY_DIR)/cluster_role_binding.yaml
 	@echo "Creating Secret"
 	@oc create -f $(DEPLOY_DIR)/operator.config.yaml
+	@echo "Creating dsaas-cluster-admin ClusterRole"
+	@oc create -f $(DEPLOY_DIR)/dsaas_cluster_admin_cluster_role.yaml
 
 .PHONY: create-cr
 create-cr:

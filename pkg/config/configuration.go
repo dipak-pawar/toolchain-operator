@@ -18,7 +18,6 @@ const (
 	Name            = "toolchain-enabler"
 	SAName          = "toolchain-sre"
 	OAuthClientName = "codeready-toolchain"
-	CRBName         = "system:toolchain-enabler:self-provisioner"
 )
 
 // Inform encapsulates the Viper configuration object which stores the configuration data.

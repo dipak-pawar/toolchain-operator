@@ -33,6 +33,11 @@ import (
 
 var log = logf.Log.WithName("controller_toolchainenabler")
 
+const (
+	SelfProvisioner   = "system:toolchain-sre:self-provisioner"
+	DsaasClusterAdmin = "system:toolchain-sre:dsaas-cluster-admin"
+)
+
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -186,8 +191,17 @@ func (r ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEnab
 	return nil
 }
 
-// ensureClusterRoleBinding ensures ClusterRoleBinding for Service Account with self-provisioner Role
-func (r ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
+// ensureClusterRoleBinding ensures ClusterRoleBinding for Service Account with required roles
+func (r *ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
+	if err := r.bindSelfProvisionerRole(tce, saName, namespace); err != nil {
+		return err
+	}
+
+	return r.bindDsaasClusterAdminRole(tce, saName, namespace)
+}
+
+// bindSelfProvisionerRole creates ClusterRoleBinding for Service Account with self-provisioner cluster role
+func (r *ReconcileToolChainEnabler) bindSelfProvisionerRole(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
 	crb := &rbacv1.ClusterRoleBinding{
 		Subjects: []rbacv1.Subject{
 			{
@@ -204,26 +218,70 @@ func (r ReconcileToolChainEnabler) ensureClusterRoleBinding(tce *codereadyv1alph
 		},
 	}
 
-	crb.SetName(config.CRBName)
+	crb.SetName(SelfProvisioner)
 
 	// Set ToolChainEnabler instance as the owner and controller
 	if err := controllerutil.SetControllerReference(tce, crb, r.scheme); err != nil {
 		return err
 	}
-	if _, err := r.client.GetClusterRoleBinding(config.CRBName); err != nil {
+	if _, err := r.client.GetClusterRoleBinding(SelfProvisioner); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info(`adding "self-provisioner" cluster role to `, "Service Account", saName)
 			if err := r.client.CreateClusterRoleBinding(crb); err != nil {
 				return err
 			}
 
-			log.Info(fmt.Sprintf("clusterrolebinding %s created successfully", config.CRBName))
+			log.Info(fmt.Sprintf("clusterrolebinding %s created successfully", SelfProvisioner))
 			return nil
 		}
-		return errs.Wrapf(err, "failed to get clusterrolebinding %s", config.CRBName)
+		return errs.Wrapf(err, "failed to get clusterrolebinding %s", SelfProvisioner)
 	}
 
-	log.Info(fmt.Sprintf("clusterrolebinding %s already exists", config.CRBName))
+	log.Info(fmt.Sprintf("clusterrolebinding %s already exists", SelfProvisioner))
+
+	return nil
+}
+
+// bindDsaasClusterAdminRole creates ClusterRoleBinding for Service Account with dsaas-cluster-admin cluster role
+func (r *ReconcileToolChainEnabler) bindDsaasClusterAdminRole(tce *codereadyv1alpha1.ToolChainEnabler, saName, namespace string) error {
+	// currently we have defined ClusterRole dsaas-cluster-admin which needs to be create before running this operator.
+	// TODO: we should verify this cluster role existence and create if missing.
+	crb := &rbacv1.ClusterRoleBinding{
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				APIGroup:  "",
+				Name:      saName,
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "dsaas-cluster-admin",
+		},
+	}
+
+	crb.SetName(DsaasClusterAdmin)
+
+	// Set ToolChainEnabler instance as the owner and controller
+	if err := controllerutil.SetControllerReference(tce, crb, r.scheme); err != nil {
+		return err
+	}
+	if _, err := r.client.GetClusterRoleBinding(DsaasClusterAdmin); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info(`adding "dsaas-cluster-admin" cluster role to `, "Service Account", saName)
+			if err := r.client.CreateClusterRoleBinding(crb); err != nil {
+				return err
+			}
+
+			log.Info(fmt.Sprintf("clusterrolebinding %s created successfully", DsaasClusterAdmin))
+			return nil
+		}
+		return errs.Wrapf(err, "failed to get clusterrolebinding %s", DsaasClusterAdmin)
+	}
+
+	log.Info(fmt.Sprintf("clusterrolebinding %s already exists", DsaasClusterAdmin))
 
 	return nil
 }
