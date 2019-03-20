@@ -208,3 +208,47 @@ To format the code:
 $ make format-go-code
 ```
 
+== Running in Openshift 4
+
+operator-courier verify deploy/olm-catalog/toolchain-enabler/
+docker build -t quay.io/dipakpawar/toolchain-registry:latest -f Dockerfile.registry .
+
+docker push quay.io/dipakpawar/toolchain-registry:latest
+
+oc new-project toolchain-manager
+
+cat <<EOF | oc create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: toolchain-operators
+  namespace: toolchain-manager
+spec:
+  sourceType: grpc
+  image: quay.io/dipakpawar/toolchain-registry:latest
+  displayName: Toolchain Operators
+  publisher: Red Hat Developers
+EOF
+
+cat <<EOF | oc create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  generateName: toolchain-subscription
+  namespace: toolchain-manager
+spec:
+  source: toolchain-operators
+  sourceNamespace: toolchain-manager
+  name: toolchain
+  startingCSV: toolchain-enabler.v0.0.1
+  channel: alpha
+EOF
+
+cat <<EOF | oc create -f -
+apiVersion: operators.coreos.com/v1alpha2
+kind: OperatorGroup
+metadata:
+  name: toolchain-operator
+  namespace: toolchain-manager
+spec: {}
+EOF
