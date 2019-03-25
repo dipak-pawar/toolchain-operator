@@ -227,9 +227,9 @@ You can find more info about operator-couries at https://github.com/operator-fra
 `operator-courier verify deploy/olm-catalog/toolchain-enabler/`
 
 ==== Build and push registry image
-`docker build -t quay.io/dipakpawar/toolchain-registry:latest -f Dockerfile.registry .`
+`docker build -t quay.io/dipakpawar/toolchain-registry:v1 -f Dockerfile.registry .`
 
-`docker push quay.io/dipakpawar/toolchain-registry:latest`
+`docker push quay.io/dipakpawar/toolchain-registry:v1`
 
 === Login as cluster-admin
 
@@ -252,7 +252,7 @@ metadata:
   namespace: ${namespace}
 spec:
   sourceType: grpc
-  image: quay.io/dipakpawar/toolchain-registry:latest
+  image: quay.io/dipakpawar/toolchain-registry:v1
   displayName: Toolchain Operators
   publisher: Red Hat Developers
 EOF
