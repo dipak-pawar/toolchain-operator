@@ -154,7 +154,7 @@ spec:
                     secretKeyRef:
                       key: tc.client.secret
                       name: toolchain
-                image: quay.io/openshiftio/toolchain-operator:13e60e9-1548678941
+                image: quay.io/openshiftio/toolchain-operator:latest
                 imagePullPolicy: Always
                 name: toolchain-enabler
                 ports:
