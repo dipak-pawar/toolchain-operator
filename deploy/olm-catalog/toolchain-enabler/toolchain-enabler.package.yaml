@@ -1,4 +1,4 @@
 packageName: toolchain
 channels:
 - name: alpha
-  currentCSV: toolchain-enabler.v0.0.1
+  currentCSV: toolchain-enabler.v0.0.2
