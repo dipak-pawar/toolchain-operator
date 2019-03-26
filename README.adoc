@@ -216,18 +216,13 @@ We don't want to ship our operator to every cluster by default, this is why we a
 
 === Create, verify and push updated manifests to Registry
 
-install operator-courier using:
-
-`pip3 install operator-courier`
-
-You can find more info about operator-couries at https://github.com/operator-framework/operator-courier.
-
 ==== Set Environment Variable
+```
 export NAMESPACE=toolchain-manager
 export REGISTRY_IMG=quay.io/dipakpawar/toolchain-registry
 export CHANNEL=alpha
 export IMAGE_TAG=$(git rev-parse --short=7 HEAD)
-
+```
 
 ==== Build and push registry image
 ```
@@ -395,8 +390,7 @@ docker build -t ${REGISTRY_IMG}:${CHANNEL}-${IMAGE_TAG} -f Dockerfile.registry .
 docker push ${REGISTRY_IMG}:${CHANNEL}-${IMAGE_TAG}
 ```
 
-We have an issue 'updating the image reference in a grpc CatalogSource doesn't update the pod image'.
-See https://jira.coreos.com/browse/OLM-955[OLM-955]
+We have an issue 'updating the image reference in a grpc CatalogSource doesn't update the pod image'. See https://jira.coreos.com/browse/OLM-955[OLM-955]
 We are using following temporary workaround:
 
 `oc delete catalogsource toolchain-catalog`
