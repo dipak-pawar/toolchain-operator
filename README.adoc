@@ -367,7 +367,7 @@ pod/toolchain-enabler-64c55f5b5c-5mjpp   1/1       Running   0          6m35s
 
 ```
 cat <<EOF | oc create -f -
-apiVersion: codeready.io/v1alpha1
+apiVersion: codeready.openshift.io/v1alpha1
 kind: ToolChainEnabler
 metadata:
   name: toolchainenabler

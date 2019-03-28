@@ -12,7 +12,7 @@ spec:
     - description: Represent a Toolchain Enabler
       displayName: toolchainenabler
       kind: ToolChainEnabler
-      name: toolchainenablers.codeready.io
+      name: toolchainenablers.codeready.openshift.io
       version: v1alpha1
   description: Operator to enable CodeReady Toolchain on OSD clusters
   displayName: Toolchain Operator
@@ -37,7 +37,7 @@ spec:
           verbs:
           - create
         - apiGroups:
-          - codeready.io
+          - codeready.openshift.io
           resources:
           - toolchainenablers/finalizers
           verbs:
@@ -193,7 +193,7 @@ spec:
           - create
           - delete
         - apiGroups:
-          - codeready.io
+          - codeready.openshift.io
           resources:
           - toolchainenablers
           verbs:
