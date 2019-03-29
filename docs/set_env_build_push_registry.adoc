@@ -5,7 +5,7 @@
 ==== Set Environment Variable
 ```
 export NAMESPACE=toolchain-manager
-export REGISTRY_IMG=quay.io/dipakpawar/toolchain-registry
+export REGISTRY_IMG=quay.io/<your_username>/toolchain-registry
 export CHANNEL=alpha
 export IMAGE_TAG=$(git rev-parse --short=7 HEAD)
 export TC_CLIENT_ID=bb6d043d-f243-458f-8498-2c18a12dcf47
