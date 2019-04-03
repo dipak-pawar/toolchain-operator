@@ -224,6 +224,7 @@ oc apply -f https://raw.githubusercontent.com/operator-framework/operator-lifecy
 
 :cluster: minishift
 include::docs/set_env_build_push_registry.adoc[]
+
 include::docs/run_operator_using_olm.adoc[]
 
 
