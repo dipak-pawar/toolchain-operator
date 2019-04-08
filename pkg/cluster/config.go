@@ -19,8 +19,11 @@ func clusterNameAndAPIURL(i configInformer) configOption {
 		if err != nil {
 			// Openshift 3 doesn't have infrastucture resource named cluster. This is workaround for our tests to run on minishift
 			if errors.IsNotFound(err) && infrastructure == nil {
+				// To Do change to warning when we moved to logrus implementation
+				apiURL := fmt.Sprintf("https://api.%s.openshift.com/", i.clusterName)
+				log.Info("forming cluster url using given cluster name", "cluster_name", i.clusterName, "cluster_url", apiURL)
 				c.Name = i.clusterName
-				c.APIURL = fmt.Sprintf("https://api.%s.openshift.com/", i.clusterName)
+				c.APIURL = apiURL
 				return nil
 			}
 			return errs.Wrapf(err, "failed to get infrastructure resource named cluster ")
