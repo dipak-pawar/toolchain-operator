@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	"github.com/fabric8-services/toolchain-operator/pkg/config"
 	"github.com/fabric8-services/toolchain-operator/pkg/controller/toolchainenabler"
+	"github.com/fabric8-services/toolchain-operator/pkg/online_registration"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	"github.com/stretchr/testify/assert"
@@ -111,6 +112,7 @@ func TestToolChainEnabler(t *testing.T) {
 		err = verifyResources(t, operatorClient, namespace)
 		assert.NoError(t, err)
 	})
+
 	t.Run("delete sa and verify", func(t *testing.T) {
 		// given
 		sa, err := operatorClient.GetServiceAccount(namespace, config.SAName)
@@ -124,6 +126,35 @@ func TestToolChainEnabler(t *testing.T) {
 		err = verifyResources(t, operatorClient, namespace)
 		assert.NoError(t, err)
 	})
+
+	t.Run("delete online-registration cluster role binding and verify", func(t *testing.T) {
+		// given
+		clusterRoleBinding, err := operatorClient.GetClusterRoleBinding(online_registration.ClusterRoleBindingName)
+		require.NoError(t, err)
+
+		// when
+		err = operatorClient.Delete(context.Background(), clusterRoleBinding)
+		require.NoError(t, err, "failed to delete cluster role binding %s", online_registration.ClusterRoleBindingName)
+
+		// then
+		err = verifyResources(t, operatorClient, namespace)
+		assert.NoError(t, err)
+	})
+
+	t.Run("delete online-registration sa and verify", func(t *testing.T) {
+		// given
+		sa, err := operatorClient.GetServiceAccount(online_registration.Namespace, online_registration.ServiceAccountName)
+		require.NoError(t, err)
+
+		// when
+		err = operatorClient.Delete(context.Background(), sa)
+		require.NoError(t, err, "failed to delete service account %s/%s", online_registration.Namespace, online_registration.ServiceAccountName)
+
+		// then
+		err = verifyResources(t, operatorClient, namespace)
+		assert.NoError(t, err)
+	})
+
 }
 
 func verifyResources(t *testing.T, operatorClient client.Client, namespace string) error {

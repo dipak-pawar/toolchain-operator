@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/toolchain-operator/pkg/cluster"
 	"github.com/fabric8-services/toolchain-operator/pkg/config"
+	"github.com/fabric8-services/toolchain-operator/pkg/online_registration"
 	"github.com/fabric8-services/toolchain-operator/pkg/secret"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	errs "github.com/pkg/errors"
@@ -132,6 +133,11 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
+	// create service account online-registration in openshift-infra namespace and bind clusterrole online-registration to it
+	if err := online_registration.EnsureResources(r.client); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Create SA
 	if err := r.ensureSA(instance); err != nil {
 		return reconcile.Result{}, err
@@ -176,7 +182,7 @@ func (r ReconcileToolChainEnabler) ensureSA(tce *codereadyv1alpha1.ToolChainEnab
 
 	if _, err := r.client.GetServiceAccount(tce.Namespace, config.SAName); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("creating a new service sccount ", "namespace", sa.Namespace, "name", sa.Name)
+			log.Info("creating a new service account ", "namespace", sa.Namespace, "name", sa.Name)
 			if err := r.client.CreateServiceAccount(sa); err != nil {
 				return err
 			}

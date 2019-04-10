@@ -16,11 +16,9 @@ import (
 	. "github.com/fabric8-services/toolchain-operator/pkg/config"
 	. "github.com/fabric8-services/toolchain-operator/test"
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"net/http"
@@ -547,34 +545,4 @@ func newReconcileRequest(name string) reconcile.Request {
 			Namespace: Namespace,
 		},
 	}
-}
-
-type DummyClient struct {
-	client.Client
-	resources map[string]string
-}
-
-func NewDummyClient(k8sClient client.Client, opts map[string]string) client.Client {
-	return &DummyClient{k8sClient, opts}
-}
-
-func (d *DummyClient) GetServiceAccount(namespace, name string) (*v1.ServiceAccount, error) {
-	if msg, ok := d.resources["sa"]; ok {
-		return nil, errors.New(msg)
-	}
-	return d.Client.GetServiceAccount(namespace, name)
-}
-
-func (d *DummyClient) GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
-	if msg, ok := d.resources["crb"]; ok {
-		return nil, errors.New(msg)
-	}
-	return d.Client.GetClusterRoleBinding(name)
-}
-
-func (d *DummyClient) GetOAuthClient(name string) (*oauthv1.OAuthClient, error) {
-	if msg, ok := d.resources["oc"]; ok {
-		return nil, errors.New(msg)
-	}
-	return d.Client.GetOAuthClient(name)
 }
