@@ -54,7 +54,7 @@ func Add(mgr manager.Manager) error {
 		return errs.Wrapf(err, "something went wrong while creating configuration")
 	}
 
-	infraCache, err := cache.New(mgr.GetConfig(), cache.Options{Namespace: "openshift-infra", Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
+	infraCache, err := cache.New(mgr.GetConfig(), cache.Options{Namespace: online_registration.Namespace, Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
 	if err != nil {
 		return fmt.Errorf("failed to create openshift-infra cache: %v", err)
 	}
@@ -97,10 +97,10 @@ func Add(mgr manager.Manager) error {
 		return fmt.Errorf("failed to get informer for %v: %v", obj, err)
 	}
 	if err := c.Watch(&source.Informer{Informer: informer}, handler.Funcs{
-		CreateFunc:  func(e event.CreateEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.Meta)) },
-		UpdateFunc:  func(e event.UpdateEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.MetaNew)) },
-		DeleteFunc:  func(e event.DeleteEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.Meta)) },
-		GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.Meta)) },
+		CreateFunc:  func(e event.CreateEvent, q workqueue.RateLimitingInterface) { q.Add(reconcileRequest(e.Meta)) },
+		UpdateFunc:  func(e event.UpdateEvent, q workqueue.RateLimitingInterface) { q.Add(reconcileRequest(e.MetaNew)) },
+		DeleteFunc:  func(e event.DeleteEvent, q workqueue.RateLimitingInterface) { q.Add(reconcileRequest(e.Meta)) },
+		GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) { q.Add(reconcileRequest(e.Meta)) },
 	}, predicate.Funcs{
 		CreateFunc:  func(e event.CreateEvent) bool { return isOpenshiftInfraServiceAccount(e.Meta.GetName()) },
 		DeleteFunc:  func(e event.DeleteEvent) bool { return isOpenshiftInfraServiceAccount(e.Meta.GetName()) },
@@ -143,7 +143,7 @@ func isOpenshiftInfraServiceAccount(name string) bool {
 	return name == online_registration.ServiceAccountName
 }
 
-func newReconcileRequest(objMeta metav1.Object) reconcile.Request {
+func reconcileRequest(objMeta metav1.Object) reconcile.Request {
 	return reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      objMeta.GetName(),
 		Namespace: objMeta.GetNamespace(),

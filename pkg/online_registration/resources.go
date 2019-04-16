@@ -54,10 +54,10 @@ func EnsureServiceAccount(client client.Client, cache cache.Cache) error {
 			if err := client.CreateServiceAccount(&sa); err != nil {
 				return err
 			}
-			log.Info(fmt.Sprintf("service account %s created successfully", ServiceAccountName))
+			log.Info(fmt.Sprintf("service account %s in namespace %s created successfully", ServiceAccountName, Namespace))
 			return nil
 		}
-		return errs.Wrapf(err, "failed to get service account %s", ServiceAccountName)
+		return errs.Wrapf(err, "failed to get service account %s from namespace %s", ServiceAccountName, Namespace)
 	}
 	log.Info(fmt.Sprintf("service account %s already exists", ServiceAccountName))
 	return nil
@@ -66,7 +66,7 @@ func EnsureServiceAccount(client client.Client, cache cache.Cache) error {
 func EnsureClusterRoleBinding(client client.Client) error {
 	if _, err := client.GetClusterRoleBinding(ClusterRoleBindingName); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("adding online-registration cluster role to", "service account", ServiceAccountName)
+			log.Info("adding online-registration cluster role to", "service account", ServiceAccountName, "namespace", Namespace)
 			crb := clusterRoleBinding
 			if err := client.CreateClusterRoleBinding(&crb); err != nil {
 				return err

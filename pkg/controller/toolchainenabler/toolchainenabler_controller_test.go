@@ -14,6 +14,7 @@ import (
 	"github.com/fabric8-services/toolchain-operator/pkg/apis"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	. "github.com/fabric8-services/toolchain-operator/pkg/config"
+	"github.com/fabric8-services/toolchain-operator/pkg/online_registration"
 	. "github.com/fabric8-services/toolchain-operator/test"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"github.com/fabric8-services/toolchain-operator/pkg/online_registration"
 )
 
 const (
@@ -90,7 +90,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			//when
 			res, err := r.Reconcile(req)
 
-			//then - verify resources are not getting created if custom resource is not available in ns
+			//then - verify resources are not getting created if custom resource is not available in operator ns
 			require.NoError(t, err, "reconcile is failing")
 			assert.False(t, res.Requeue, "reconcile requested requeue request")
 

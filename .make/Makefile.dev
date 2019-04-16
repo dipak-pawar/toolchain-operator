@@ -35,7 +35,7 @@ create-resources:
 	@oc create -f $(DEPLOY_DIR)/operator.config.yaml
 	@echo "Creating dsaas-cluster-admin ClusterRole"
 	@oc create -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml
-	@echo "Creating dsaas-cluster-admin ClusterRole"
+	@echo "Creating online-registration ClusterRole"
 	@oc create -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml
 
 .PHONY: create-cr

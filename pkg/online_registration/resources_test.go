@@ -22,7 +22,7 @@ func TestResourceCreator(t *testing.T) {
 			//given
 			cl := client.NewClient(fake.NewFakeClient())
 			//when
-			err := EnsureServiceAccount(cl, &test.FakeCache{errs.NewNotFound(schema.GroupResource{}, "openshift-online")})
+			err := EnsureServiceAccount(cl, &test.FakeCache{errs.NewNotFound(schema.GroupResource{}, ServiceAccountName)})
 			//then
 			require.NoError(t, err, "failed to create SA %s", ServiceAccountName)
 			assertSA(t, cl)
@@ -33,7 +33,7 @@ func TestResourceCreator(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient())
 
 			//create SA first time
-			err := EnsureServiceAccount(cl, &test.FakeCache{ errs.NewNotFound(schema.GroupResource{}, "openshift-online")})
+			err := EnsureServiceAccount(cl, &test.FakeCache{errs.NewNotFound(schema.GroupResource{}, ServiceAccountName)})
 			require.NoError(t, err, "failed to create SA %s", ServiceAccountName)
 			assertSA(t, cl)
 
@@ -54,7 +54,7 @@ func TestResourceCreator(t *testing.T) {
 			err := EnsureServiceAccount(cl, &test.FakeCache{errors.New("something went wrong")})
 
 			//then
-			assert.EqualError(t, err, fmt.Sprintf("failed to get service account %s: %s", ServiceAccountName, "something went wrong"))
+			assert.EqualError(t, err, fmt.Sprintf("failed to get service account %s from namespace %s: %s", ServiceAccountName, Namespace, "something went wrong"))
 		})
 
 	})
