@@ -47,16 +47,11 @@ const (
 
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
+func Add(mgr manager.Manager, infraCache cache.Cache) error {
 
 	configuration, err := config.NewConfiguration()
 	if err != nil {
 		return errs.Wrapf(err, "something went wrong while creating configuration")
-	}
-
-	infraCache, err := cache.New(mgr.GetConfig(), cache.Options{Namespace: online_registration.Namespace, Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
-	if err != nil {
-		return fmt.Errorf("failed to create openshift-infra cache: %v", err)
 	}
 
 	reconciler := &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme(), config: configuration, cache: infraCache}
@@ -107,35 +102,9 @@ func Add(mgr manager.Manager) error {
 		UpdateFunc:  func(e event.UpdateEvent) bool { return isOpenshiftInfraServiceAccount(e.MetaNew.GetName()) },
 		GenericFunc: func(e event.GenericEvent) bool { return isOpenshiftInfraServiceAccount(e.Meta.GetName()) },
 	}); err != nil {
-		return err
-	}
-
-	if err != nil {
 		return fmt.Errorf("failed to create watch for %v: %v", obj, err)
 	}
 
-	errChan := make(chan error)
-	stop := make(chan struct{})
-
-	// Start secondary caches.
-	go func() {
-		if err := infraCache.Start(stop); err != nil {
-			errChan <- err
-		}
-	}()
-	log.Info("waiting for cache to sync")
-	if !infraCache.WaitForCacheSync(stop) {
-		return fmt.Errorf("failed to sync cache")
-	}
-	log.Info("cache synced")
-
-	// Wait for the manager to exit or a secondary cache to fail.
-	//select {
-	//case <-stop:
-	//	return nil
-	//case err := <-errChan:
-	//	return err
-	//}
 	return nil
 }
 
