@@ -1,13 +1,15 @@
 package online_registration
 
 import (
+	"errors"
 	"fmt"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
-	. "github.com/fabric8-services/toolchain-operator/pkg/config"
 	"github.com/fabric8-services/toolchain-operator/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	rbacv1 "k8s.io/api/rbac/v1"
+	errs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
@@ -19,11 +21,8 @@ func TestResourceCreator(t *testing.T) {
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			cl := client.NewClient(fake.NewFakeClient())
-			r := &resourceCreator{client: cl}
-
 			//when
-			err := r.createServiceAccount()
-
+			err := EnsureServiceAccount(cl, &test.FakeCache{errs.NewNotFound(schema.GroupResource{}, "openshift-online")})
 			//then
 			require.NoError(t, err, "failed to create SA %s", ServiceAccountName)
 			assertSA(t, cl)
@@ -32,15 +31,14 @@ func TestResourceCreator(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			cl := client.NewClient(fake.NewFakeClient())
-			r := &resourceCreator{client: cl}
 
 			//create SA first time
-			err := r.createServiceAccount()
+			err := EnsureServiceAccount(cl, &test.FakeCache{ errs.NewNotFound(schema.GroupResource{}, "openshift-online")})
 			require.NoError(t, err, "failed to create SA %s", ServiceAccountName)
 			assertSA(t, cl)
 
 			//when
-			err = r.createServiceAccount()
+			err = EnsureServiceAccount(cl, &test.FakeCache{nil})
 
 			//then
 			require.NoError(t, err, "failed to ensure SA %s", ServiceAccountName)
@@ -50,18 +48,13 @@ func TestResourceCreator(t *testing.T) {
 
 		t.Run("fail", func(t *testing.T) {
 			//given
-			errMsg := "something went wrong while getting sa"
-			m := make(map[string]string)
-			m["sa"] = errMsg
-
-			cl := test.NewDummyClient(client.NewClient(fake.NewFakeClient()), m)
-			r := &resourceCreator{client: cl}
+			cl := client.NewClient(fake.NewFakeClient())
 
 			//when
-			err := r.createServiceAccount()
+			err := EnsureServiceAccount(cl, &test.FakeCache{errors.New("something went wrong")})
 
 			//then
-			assert.EqualError(t, err, fmt.Sprintf("failed to get service account %s: %s", ServiceAccountName, errMsg))
+			assert.EqualError(t, err, fmt.Sprintf("failed to get service account %s: %s", ServiceAccountName, "something went wrong"))
 		})
 
 	})
@@ -70,10 +63,9 @@ func TestResourceCreator(t *testing.T) {
 		t.Run("not exists", func(t *testing.T) {
 			//given
 			cl := client.NewClient(fake.NewFakeClient())
-			r := &resourceCreator{client: cl}
 
 			//when
-			err := r.createClusterRoleBinding()
+			err := EnsureClusterRoleBinding(cl)
 
 			//then
 			require.NoError(t, err, "failed to create ClusterRoleBinding %s", ClusterRoleBindingName)
@@ -83,17 +75,16 @@ func TestResourceCreator(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			//given
 			cl := client.NewClient(fake.NewFakeClient())
-			r := &resourceCreator{client: cl}
 
 			//when
-			err := r.createClusterRoleBinding()
+			err := EnsureClusterRoleBinding(cl)
 
 			//then
 			require.NoError(t, err, "failed to create ClusterRoleBinding %s", ClusterRoleBindingName)
 			assertClusterRoleBinding(t, cl)
 
 			// when
-			err = r.createClusterRoleBinding()
+			err = EnsureClusterRoleBinding(cl)
 
 			require.NoError(t, err, "failed to ensure ClusterRoleBinding %s", ClusterRoleBindingName)
 			assertClusterRoleBinding(t, cl)
@@ -106,28 +97,14 @@ func TestResourceCreator(t *testing.T) {
 			m["crb"] = errMsg
 
 			cl := test.NewDummyClient(client.NewClient(fake.NewFakeClient()), m)
-			r := &resourceCreator{client: cl}
 
 			//when
-			err := r.createClusterRoleBinding()
+			err := EnsureClusterRoleBinding(cl)
 
 			//then
 			assert.EqualError(t, err, fmt.Sprintf("failed to get clusterrolebinding %s: %s", ClusterRoleBindingName, errMsg))
 		})
 	})
-}
-
-func TestEnsureResources(t *testing.T) {
-	// given
-	cl := client.NewClient(fake.NewFakeClient())
-
-	// when
-	err := EnsureResources(cl)
-	require.NoError(t, err, "failed to ensure SA %s", SAName)
-
-	//then
-	assertSA(t, cl)
-	assertClusterRoleBinding(t, cl)
 }
 
 func assertSA(t *testing.T, cl client.Client) {
@@ -145,8 +122,9 @@ func assertClusterRoleBinding(t *testing.T, cl client.Client) {
 
 	subs := []rbacv1.Subject{
 		{
-			Kind: "ServiceAccount",
-			Name: ServiceAccountName,
+			Kind:      "ServiceAccount",
+			Name:      ServiceAccountName,
+			Namespace: Namespace,
 		},
 	}
 

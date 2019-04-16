@@ -1,14 +1,16 @@
 package online_registration
 
 import (
+	"context"
 	"fmt"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
-	"github.com/fabric8-services/toolchain-operator/pkg/config"
 	errs "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -31,8 +33,9 @@ var clusterRoleBinding = rbacv1.ClusterRoleBinding{
 	},
 	Subjects: []rbacv1.Subject{
 		{
-			Kind: "ServiceAccount",
-			Name: ServiceAccountName,
+			Kind:      "ServiceAccount",
+			Name:      ServiceAccountName,
+			Namespace: Namespace,
 		},
 	},
 	RoleRef: rbacv1.RoleRef{
@@ -42,45 +45,30 @@ var clusterRoleBinding = rbacv1.ClusterRoleBinding{
 	},
 }
 
-type resourceCreator struct {
-	client client.Client
-}
-
-func EnsureResources(c client.Client) error {
-	r := resourceCreator{client: c}
-	//
-	if err := r.createServiceAccount(); err != nil {
-		return err
-	}
-
-	if err := r.createClusterRoleBinding(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r resourceCreator) createServiceAccount() error {
-	if _, err := r.client.GetServiceAccount(Namespace, ServiceAccountName); err != nil {
+func EnsureServiceAccount(client client.Client, cache cache.Cache) error {
+	sa := &corev1.ServiceAccount{}
+	if err := cache.Get(context.Background(), types.NamespacedName{Namespace: Namespace, Name: ServiceAccountName}, sa); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("creating a new service account ", "namespace", Namespace, "name", ServiceAccountName)
-			if err := r.client.CreateServiceAccount(&serviceAccount); err != nil {
+			sa := serviceAccount
+			if err := client.CreateServiceAccount(&sa); err != nil {
 				return err
 			}
-			log.Info(fmt.Sprintf("service account %s created successfully", config.SAName))
+			log.Info(fmt.Sprintf("service account %s created successfully", ServiceAccountName))
 			return nil
 		}
-		return errs.Wrapf(err, "failed to get service account %s", config.SAName)
+		return errs.Wrapf(err, "failed to get service account %s", ServiceAccountName)
 	}
-	log.Info(fmt.Sprintf("service account %s already exists", config.SAName))
+	log.Info(fmt.Sprintf("service account %s already exists", ServiceAccountName))
 	return nil
 }
 
-func (r resourceCreator) createClusterRoleBinding() error {
-	if _, err := r.client.GetClusterRoleBinding(ClusterRoleBindingName); err != nil {
+func EnsureClusterRoleBinding(client client.Client) error {
+	if _, err := client.GetClusterRoleBinding(ClusterRoleBindingName); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("adding online-registration cluster role to", "service account", ServiceAccountName)
-			if err := r.client.CreateClusterRoleBinding(&clusterRoleBinding); err != nil {
+			crb := clusterRoleBinding
+			if err := client.CreateClusterRoleBinding(&crb); err != nil {
 				return err
 			}
 

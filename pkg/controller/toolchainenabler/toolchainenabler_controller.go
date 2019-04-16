@@ -4,12 +4,15 @@ import (
 	"context"
 
 	"fmt"
+
 	codereadyv1alpha1 "github.com/fabric8-services/toolchain-operator/pkg/apis/codeready/v1alpha1"
 	"github.com/fabric8-services/toolchain-operator/pkg/client"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+
+	"time"
 
 	clusterclient "github.com/fabric8-services/fabric8-cluster-client/cluster"
 	"github.com/fabric8-services/fabric8-common/httpsupport"
@@ -22,14 +25,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
 )
 
 var log = logf.Log.WithName("controller_toolchainenabler")
@@ -42,26 +48,21 @@ const (
 // Add creates a new ToolChainEnabler Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	reconciler, err := newReconciler(mgr)
-	if err != nil {
-		return err
-	}
-	return add(mgr, reconciler)
-}
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
-	c, err := config.NewConfiguration()
+	configuration, err := config.NewConfiguration()
 	if err != nil {
-		return nil, errs.Wrapf(err, "something went wrong while creating configuration")
+		return errs.Wrapf(err, "something went wrong while creating configuration")
 	}
-	return &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme(), config: c}, nil
-}
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	infraCache, err := cache.New(mgr.GetConfig(), cache.Options{Namespace: "openshift-infra", Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
+	if err != nil {
+		return fmt.Errorf("failed to create openshift-infra cache: %v", err)
+	}
+
+	reconciler := &ReconcileToolChainEnabler{client: client.NewClient(mgr.GetClient()), scheme: mgr.GetScheme(), config: configuration, cache: infraCache}
+
 	// Create a new controller
-	c, err := controller.New("toolchainenabler-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("toolchainenabler-controller", mgr, controller.Options{Reconciler: reconciler})
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,68 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	return c.Watch(&source.Kind{Type: &oauthv1.OAuthClient{}}, enqueueRequestForOwner)
+	if err := c.Watch(&source.Kind{Type: &oauthv1.OAuthClient{}}, enqueueRequestForOwner); err != nil {
+		return err
+	}
+
+	o := &corev1.ServiceAccount{}
+	obj := o.DeepCopyObject()
+	informer, err := infraCache.GetInformer(obj)
+	if err != nil {
+		return fmt.Errorf("failed to get informer for %v: %v", obj, err)
+	}
+	if err := c.Watch(&source.Informer{Informer: informer}, handler.Funcs{
+		CreateFunc:  func(e event.CreateEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.Meta)) },
+		UpdateFunc:  func(e event.UpdateEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.MetaNew)) },
+		DeleteFunc:  func(e event.DeleteEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.Meta)) },
+		GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) { q.Add(newReconcileRequest(e.Meta)) },
+	}, predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return isOpenshiftInfraServiceAccount(e.Meta.GetName()) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return isOpenshiftInfraServiceAccount(e.Meta.GetName()) },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return isOpenshiftInfraServiceAccount(e.MetaNew.GetName()) },
+		GenericFunc: func(e event.GenericEvent) bool { return isOpenshiftInfraServiceAccount(e.Meta.GetName()) },
+	}); err != nil {
+		return err
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to create watch for %v: %v", obj, err)
+	}
+
+	errChan := make(chan error)
+	stop := make(chan struct{})
+
+	// Start secondary caches.
+	go func() {
+		if err := infraCache.Start(stop); err != nil {
+			errChan <- err
+		}
+	}()
+	log.Info("waiting for cache to sync")
+	if !infraCache.WaitForCacheSync(stop) {
+		return fmt.Errorf("failed to sync cache")
+	}
+	log.Info("cache synced")
+
+	// Wait for the manager to exit or a secondary cache to fail.
+	//select {
+	//case <-stop:
+	//	return nil
+	//case err := <-errChan:
+	//	return err
+	//}
+	return nil
+}
+
+func isOpenshiftInfraServiceAccount(name string) bool {
+	return name == online_registration.ServiceAccountName
+}
+
+func newReconcileRequest(objMeta metav1.Object) reconcile.Request {
+	return reconcile.Request{NamespacedName: types.NamespacedName{
+		Name:      objMeta.GetName(),
+		Namespace: objMeta.GetNamespace(),
+	}}
 }
 
 var _ reconcile.Reconciler = &ReconcileToolChainEnabler{}
@@ -97,6 +159,9 @@ type ReconcileToolChainEnabler struct {
 	client client.Client
 	scheme *runtime.Scheme
 	config *config.Configuration
+
+	// maintaining cache for openshift-infra namespace to do necessary actions for Service Account
+	cache cache.Cache
 }
 
 // Reconcile reads that state of the cluster for a ToolChainEnabler object and makes changes based on the state read
@@ -111,31 +176,43 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	instance := &codereadyv1alpha1.ToolChainEnabler{}
 	namespacedName := request.NamespacedName
 
-	// overwrite for cluster scoped resources like OAuthClient, ClusterRoleBinding as you can't get namespace from it's event
-	if request.Namespace == "" {
-		log.Info(`couldn't find namespace in the request, getting it from env variable "WATCH_NAMESPACE"`)
-		ns, err := k8sutil.GetWatchNamespace()
-		if err != nil {
-			log.Error(err, "can't reconcile request coming from cluster scoped resources event")
-			return reconcile.Result{}, nil
+	// overwrite ns and find custom resource for ns excluding 'openshift-infra' for cluster scoped resources like OAuthClient, ClusterRoleBinding as you can't get namespace from it's event only
+	if request.Namespace != online_registration.Namespace {
+		if request.Namespace == "" {
+			log.Info(`couldn't find namespace in the request, getting it from env variable "WATCH_NAMESPACE"`)
+			ns, err := k8sutil.GetWatchNamespace()
+			if err != nil {
+				log.Error(err, "can't reconcile request coming from cluster scoped resources event")
+				return reconcile.Result{}, nil
+			}
+			namespacedName = types.NamespacedName{Namespace: ns, Name: request.Name}
 		}
-		namespacedName = types.NamespacedName{Namespace: ns, Name: request.Name}
+		if err := r.client.Get(context.TODO(), namespacedName, instance); err != nil {
+			if errors.IsNotFound(err) {
+				log.Info("Requeueing request doesn't start as couldn't find requested object or stopped as requested object could have been deleted")
+				// Request object not found, could have been deleted after reconcile request.
+				// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+				// Return and don't requeue
+				return reconcile.Result{}, nil
+			}
+			// Error reading the object - requeue the request.
+			return reconcile.Result{}, err
+		}
 	}
-	if err := r.client.Get(context.TODO(), namespacedName, instance); err != nil {
-		if errors.IsNotFound(err) {
-			log.Info("Requeueing request doesn't start as couldn't find requested object or stopped as requested object could have been deleted")
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
+
+	// create service account online-registration in openshift-infra namespace
+	if err := online_registration.EnsureServiceAccount(r.client, r.cache); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// create service account online-registration in openshift-infra namespace and bind clusterrole online-registration to it
-	if err := online_registration.EnsureResources(r.client); err != nil {
+	// create clusterrolebinding online-registration to service account online-registration
+	if err := online_registration.EnsureClusterRoleBinding(r.client); err != nil {
 		return reconcile.Result{}, err
+	}
+
+	// do not reconcile as online-registration specific logic is already reconciled, it's been called by 'openshift-infra' ns sa informer
+	if request.Namespace == online_registration.Namespace {
+		return reconcile.Result{}, nil
 	}
 
 	// Create SA

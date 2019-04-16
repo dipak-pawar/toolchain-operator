@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"github.com/fabric8-services/toolchain-operator/pkg/online_registration"
 )
 
 const (
@@ -55,6 +56,8 @@ func TestToolChainEnablerController(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(codereadyv1alpha1.SchemeGroupVersion, tce)
 
+	cache := FakeCache{nil}
+
 	t.Run("Reconcile", func(t *testing.T) {
 		t.Run("without registering openshift specific resources", func(t *testing.T) {
 			//given
@@ -62,7 +65,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
-			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, cache: &cache}
 
 			req := newReconcileRequest(Name)
 
@@ -80,14 +83,14 @@ func TestToolChainEnablerController(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
-			r := &ReconcileToolChainEnabler{client: cl, scheme: s}
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, cache: &cache}
 
 			req := newReconcileRequest(Name)
 
 			//when
 			res, err := r.Reconcile(req)
 
-			//then
+			//then - verify resources are not getting created if custom resource is not available in ns
 			require.NoError(t, err, "reconcile is failing")
 			assert.False(t, res.Requeue, "reconcile requested requeue request")
 
@@ -98,8 +101,15 @@ func TestToolChainEnablerController(t *testing.T) {
 			actual, err := cl.GetClusterRoleBinding(SelfProvisioner)
 			assert.Error(t, err, "failed to get not found error")
 			assert.Nil(t, actual, "found ClusterRoleBinding %s", SelfProvisioner)
-		})
 
+			sa, err = cl.GetServiceAccount(online_registration.Namespace, online_registration.ServiceAccountName)
+			assert.Error(t, err, "failed to get not found error")
+			assert.Nil(t, sa, "found sa %s", online_registration.ServiceAccountName)
+
+			actual, err = cl.GetClusterRoleBinding(online_registration.ClusterRoleBindingName)
+			assert.Error(t, err, "failed to get not found error")
+			assert.Nil(t, actual, "found ClusterRoleBinding %s", online_registration.ClusterRoleBindingName)
+		})
 	})
 
 	t.Run("SA", func(t *testing.T) {

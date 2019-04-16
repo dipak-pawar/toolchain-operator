@@ -35,6 +35,8 @@ create-resources:
 	@oc create -f $(DEPLOY_DIR)/operator.config.yaml
 	@echo "Creating dsaas-cluster-admin ClusterRole"
 	@oc create -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml
+	@echo "Creating dsaas-cluster-admin ClusterRole"
+	@oc create -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml
 
 .PHONY: create-cr
 create-cr:
@@ -84,6 +86,12 @@ clean-resources:
 	@oc delete -f $(DEPLOY_DIR)/operator.config.yaml || true
 	@echo "Deleting dsaas-cluster-admin ClusterRole"
 	@oc delete -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml || true
+	@echo "Deleting online-registration ClusterRole"
+	@oc delete -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml || true
+	@echo "Deleting online-registration ClusterRoleBinding"
+	@oc delete clusterrolebinding online-registration || true
+	@echo "Deleting online-registration sa from openshift-infra namespace"
+	@oc delete sa online-registration -n openshift-infra || true
 
 .PHONY: deploy-operator
 deploy-operator: build build-image deploy-operator-only

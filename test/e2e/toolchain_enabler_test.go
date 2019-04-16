@@ -158,7 +158,7 @@ func TestToolChainEnabler(t *testing.T) {
 }
 
 func verifyResources(t *testing.T, operatorClient client.Client, namespace string) error {
-	if err := waitForServiceAccount(t, operatorClient, namespace); err != nil {
+	if err := waitForServiceAccount(t, operatorClient, namespace, config.SAName); err != nil {
 		return err
 	}
 
@@ -171,6 +171,14 @@ func verifyResources(t *testing.T, operatorClient client.Client, namespace strin
 	}
 
 	if err := waitForOauthClient(t, operatorClient); err != nil {
+		return err
+	}
+
+	if err := waitForServiceAccount(t, operatorClient, online_registration.Namespace, online_registration.ServiceAccountName); err != nil {
+		return err
+	}
+
+	if err := waitForClusterRoleBinding(t, operatorClient, online_registration.ClusterRoleBindingName); err != nil {
 		return err
 	}
 
