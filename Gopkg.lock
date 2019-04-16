@@ -202,6 +202,14 @@
   version = "v1.4.7"
 
 [[projects]]
+  branch = "master"
+  digest = "1:a2e7902d13f841f1ffda40d0e6c0831d21650e96b6660e319329169d302a3e65"
+  name = "github.com/fzipp/gocyclo"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "6acd4345c835499920e8426c7e4e8d7a34f1bb83"
+
+[[projects]]
   digest = "1:81466b4218bf6adddac2572a30ac733a9255919bc2f470b4827a317bd4ee1756"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -796,6 +804,14 @@
   version = "v1.3.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:b70423ea2ca23eb78d7729c3c98fbdf33a22059ce9ea06640066cddbbeb0006d"
+  name = "github.com/wadey/gocovmerge"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "b5bfa59ec0adc420475f97f89b58045c721d761c"
+
+[[projects]]
   digest = "1:8bcb2616463bc981681c4b26f2aa817be8167682b76fb7884ec3fafdc9f82372"
   name = "go.opencensus.io"
   packages = [
@@ -962,6 +978,7 @@
   digest = "1:74da4bdd387a19bab7d0437401ad5e10d59ad1f00560f39f5696013d1f302cf7"
   name = "golang.org/x/tools"
   packages = [
+    "cover",
     "go/ast/astutil",
     "go/gcexportdata",
     "go/internal/cgo",
@@ -1443,6 +1460,7 @@
     "github.com/fabric8-services/fabric8-common/auth",
     "github.com/fabric8-services/fabric8-common/goasupport",
     "github.com/fabric8-services/fabric8-common/httpsupport",
+    "github.com/fzipp/gocyclo",
     "github.com/goadesign/goa/client",
     "github.com/magiconair/properties/assert",
     "github.com/openshift/api/config/v1",
@@ -1459,6 +1477,7 @@
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
+    "github.com/wadey/gocovmerge",
     "golang.org/x/net/context",
     "gopkg.in/h2non/gock.v1",
     "k8s.io/api/core/v1",
@@ -1472,6 +1491,7 @@
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/util/workqueue",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/conversion-gen",
