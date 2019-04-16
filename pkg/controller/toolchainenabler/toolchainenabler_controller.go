@@ -129,7 +129,7 @@ type ReconcileToolChainEnabler struct {
 	scheme *runtime.Scheme
 	config *config.Configuration
 
-	// maintaining cache for openshift-infra namespace to do necessary actions for Service Account
+	// maintaining secondary cache for openshift-infra namespace to do necessary actions for Service Account
 	cache cache.Cache
 }
 
@@ -145,7 +145,8 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 	instance := &codereadyv1alpha1.ToolChainEnabler{}
 	namespacedName := request.NamespacedName
 
-	// overwrite ns and find custom resource for ns excluding 'openshift-infra' for cluster scoped resources like OAuthClient, ClusterRoleBinding as you can't get namespace from it's event only
+	// find toolchainenabler custom resource object for operator ns only and overwrite ns  for cluster scoped resources
+	// like OAuthClient, ClusterRoleBinding as you can't get namespace from it's request event
 	if request.Namespace != online_registration.Namespace {
 		if request.Namespace == "" {
 			log.Info(`couldn't find namespace in the request, getting it from env variable "WATCH_NAMESPACE"`)
@@ -179,8 +180,8 @@ func (r *ReconcileToolChainEnabler) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	// do not reconcile as online-registration specific logic is already reconciled, it's been called by 'openshift-infra' ns sa informer
 	if request.Namespace == online_registration.Namespace {
+		// do not reconcile as online-registration specific logic is already reconciled, it's been called by 'openshift-infra' ns informer
 		return reconcile.Result{}, nil
 	}
 

@@ -90,19 +90,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	infraCache, err := cache.New(mgr.GetConfig(), cache.Options{Namespace: online_registration.Namespace, Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
+	secondaryCache, err := cache.New(mgr.GetConfig(), cache.Options{Namespace: online_registration.Namespace, Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
 	if err != nil {
 		log.Error(fmt.Errorf("failed to create openshift-infra cache: %v", err), "")
 		os.Exit(1)
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr, infraCache); err != nil {
+	if err := controller.AddToManager(mgr, secondaryCache); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
 
-	if err := start(mgr, infraCache); err != nil {
+	if err := start(mgr, secondaryCache); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
@@ -114,7 +114,7 @@ func start(mgr manager.Manager, cache cache.Cache) error {
 	errChan := make(chan error)
 
 	go func() {
-		// Start openshift-infra caches.
+		// Start secondary cache for openshift-infra ns.
 		if err := cache.Start(stopChan); err != nil {
 			errChan <- err
 		}
