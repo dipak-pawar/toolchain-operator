@@ -110,32 +110,26 @@ func main() {
 }
 
 func start(mgr manager.Manager, cache cache.Cache) error {
-	stopChan := signals.SetupSignalHandler()
+	stop := signals.SetupSignalHandler()
 	errChan := make(chan error)
 
 	go func() {
 		// Start secondary cache for openshift-infra ns.
-		if err := cache.Start(stopChan); err != nil {
+		if err := cache.Start(stop); err != nil {
 			errChan <- err
 		}
 	}()
 
 	log.Info("waiting for cache to sync")
-	if !cache.WaitForCacheSync(stopChan) {
-		errChan <- fmt.Errorf("failed to sync cache")
+	if !cache.WaitForCacheSync(stop) {
+		return fmt.Errorf("failed to sync cache")
 	}
 	log.Info("cache synced")
 
-	log.Info("Starting the Cmd.")
-	// Start the Cmd
-	if err := mgr.Start(stopChan); err != nil {
-		errChan <- err
-	}
-	// Wait for the manager to exit or a secondary cache to fail.
-	select {
-	case <-stopChan:
-		return nil
-	case err := <-errChan:
-		return err
-	}
+	go func() {
+		log.Info("Starting the Cmd.")
+		errChan <- mgr.Start(stop);
+	}()
+
+	return <-errChan
 }
