@@ -1,14 +1,24 @@
+ifndef DEV_MK
+DEV_MK:=# Prevent repeated "-include".
+
+include ./make/verbose.mk
+include ./make/git.mk
+
 DOCKER_REPO?=quay.io/openshiftio
 IMAGE_NAME?=toolchain-operator
-SHORT_COMMIT=$(shell git rev-parse --short HEAD)
-ifneq ($(GITUNTRACKEDCHANGES),)
-SHORT_COMMIT := $(SHORT_COMMIT)-dirty
-endif
+REGISTRY_URI=quay.io
 
 TIMESTAMP:=$(shell date +%s)
-TAG?=$(SHORT_COMMIT)-$(TIMESTAMP)
+TAG?=$(GIT_COMMIT_ID_SHORT)-$(TIMESTAMP)
+OPENSHIFT_VERSION?=4
 
 DEPLOY_DIR:=deploy
+
+.PHONY: push-operator-image
+## Push the operator container image to a container registry
+push-operator-image: build-operator-image
+	@docker login -u $(QUAY_USERNAME) -p $(QUAY_PASSWORD) $(REGISTRY_URI)
+	docker push $(DOCKER_REPO)/$(IMAGE_NAME):$(TAG)
 
 .PHONY: create-resources
 create-resources:
@@ -35,14 +45,16 @@ create-resources:
 	@oc create -f $(DEPLOY_DIR)/operator.config.yaml
 	@echo "Creating dsaas-cluster-admin ClusterRole"
 	@oc create -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml
+	@echo "Creating online-registration ClusterRole"
+	@oc create -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml
 
 .PHONY: create-cr
 create-cr:
 	@echo "Creating Custom Resource..."
 	@oc create -f $(DEPLOY_DIR)/crds/codeready_v1alpha1_toolchainenabler_cr.yaml
 
-.PHONY: build-image
-build-image:
+.PHONY: build-operator-image
+build-operator-image:
 	docker build -t $(DOCKER_REPO)/$(IMAGE_NAME):$(TAG) -f Dockerfile.dev .
 	docker tag $(DOCKER_REPO)/$(IMAGE_NAME):$(TAG) $(DOCKER_REPO)/$(IMAGE_NAME):test
 
@@ -84,9 +96,15 @@ clean-resources:
 	@oc delete -f $(DEPLOY_DIR)/operator.config.yaml || true
 	@echo "Deleting dsaas-cluster-admin ClusterRole"
 	@oc delete -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml || true
+	@echo "Deleting online-registration ClusterRole"
+	@oc delete -f $(DEPLOY_DIR)/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml || true
+	@echo "Deleting online-registration ClusterRoleBinding"
+	@oc delete clusterrolebinding online-registration || true
+	@echo "Deleting online-registration sa from openshift-infra namespace"
+	@oc delete sa online-registration -n openshift-infra || true
 
 .PHONY: deploy-operator
-deploy-operator: build build-image deploy-operator-only
+deploy-operator: build build-operator-image deploy-operator-only
 
 .PHONY: minishift-start
 minishift-start:
@@ -94,4 +112,6 @@ minishift-start:
 	-eval `minishift docker-env` && oc login -u system:admin
 
 .PHONY: deploy-all
-deploy-all: clean-resources create-resources deps prebuild-check deploy-operator create-cr
+deploy-all: clean-resources create-resources build deploy-operator create-cr
+
+endif

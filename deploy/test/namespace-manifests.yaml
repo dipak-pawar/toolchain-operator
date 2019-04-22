@@ -76,7 +76,8 @@ metadata:
 data:
   auth.url: https://auth.openshift.io
   cluster.url: https://cluster.openshift.io
-  cluster.name: "dsaas-stage" # this is temporary workaround until we have some way to figure our how to get cluster name
+  # this is workaround to run tests for minishift
+  cluster.name: "dsaas-stage"
 
 ---
 apiVersion: apps/v1
