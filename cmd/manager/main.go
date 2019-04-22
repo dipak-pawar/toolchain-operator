@@ -128,7 +128,7 @@ func start(mgr manager.Manager, cache cache.Cache) error {
 
 	go func() {
 		log.Info("Starting the Cmd.")
-		errChan <- mgr.Start(stop);
+		errChan <- mgr.Start(stop)
 	}()
 
 	return <-errChan
