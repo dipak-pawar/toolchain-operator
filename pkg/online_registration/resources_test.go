@@ -22,7 +22,7 @@ func TestResourceCreator(t *testing.T) {
 			//given
 			cl := client.NewClient(fake.NewFakeClient())
 			//when
-			err := EnsureServiceAccount(cl, &test.FakeCache{errs.NewNotFound(schema.GroupResource{}, ServiceAccountName)})
+			err := EnsureServiceAccount(cl, test.NewFakeCache(errs.NewNotFound(schema.GroupResource{}, ServiceAccountName)))
 			//then
 			require.NoError(t, err, "failed to create SA %s", ServiceAccountName)
 			assertSA(t, cl)
@@ -33,12 +33,12 @@ func TestResourceCreator(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient())
 
 			//create SA first time
-			err := EnsureServiceAccount(cl, &test.FakeCache{errs.NewNotFound(schema.GroupResource{}, ServiceAccountName)})
+			err := EnsureServiceAccount(cl, test.NewFakeCache(errs.NewNotFound(schema.GroupResource{}, ServiceAccountName)))
 			require.NoError(t, err, "failed to create SA %s", ServiceAccountName)
 			assertSA(t, cl)
 
 			//when
-			err = EnsureServiceAccount(cl, &test.FakeCache{nil})
+			err = EnsureServiceAccount(cl, &test.FakeCache{})
 
 			//then
 			require.NoError(t, err, "failed to ensure SA %s", ServiceAccountName)
@@ -51,7 +51,7 @@ func TestResourceCreator(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient())
 
 			//when
-			err := EnsureServiceAccount(cl, &test.FakeCache{errors.New("something went wrong")})
+			err := EnsureServicAccount(cl, test.NewFakeCache(errors.New("something went wrong")))
 
 			//then
 			assert.EqualError(t, err, fmt.Sprintf("failed to get service account %s from namespace %s: %s", ServiceAccountName, Namespace, "something went wrong"))

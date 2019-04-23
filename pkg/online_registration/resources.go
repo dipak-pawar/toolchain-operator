@@ -16,9 +16,9 @@ import (
 
 var log = logf.Log.WithName("online_registration_resource_creator")
 
-var ServiceAccountName = "online-registration"
-var Namespace = "openshift-infra"
-var ClusterRoleBindingName = "online-registration"
+const ServiceAccountName = "online-registration"
+const Namespace = "openshift-infra"
+const ClusterRoleBindingName = "online-registration"
 
 var serviceAccount = corev1.ServiceAccount{
 	ObjectMeta: metav1.ObjectMeta{

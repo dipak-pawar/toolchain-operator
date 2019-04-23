@@ -40,3 +40,7 @@ func (c *FakeCache) Get(ctx context.Context, key client.ObjectKey, obj runtime.O
 func (c *FakeCache) List(ctx context.Context, opts *client.ListOptions, list runtime.Object) error {
 	return nil
 }
+
+func NewFakeCache(err error) test.FakeCache {
+	return test.FakeCache{Err: err}
+}
