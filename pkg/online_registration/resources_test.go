@@ -51,7 +51,7 @@ func TestResourceCreator(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient())
 
 			//when
-			err := EnsureServicAccount(cl, test.NewFakeCache(errors.New("something went wrong")))
+			err := EnsureServiceAccount(cl, test.NewFakeCache(errors.New("something went wrong")))
 
 			//then
 			assert.EqualError(t, err, fmt.Sprintf("failed to get service account %s from namespace %s: %s", ServiceAccountName, Namespace, "something went wrong"))

@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
 type FakeCache struct {
@@ -41,6 +42,6 @@ func (c *FakeCache) List(ctx context.Context, opts *client.ListOptions, list run
 	return nil
 }
 
-func NewFakeCache(err error) test.FakeCache {
-	return test.FakeCache{Err: err}
+func NewFakeCache(err error) cache.Cache {
+	return &FakeCache{Err: err}
 }
