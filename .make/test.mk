@@ -127,8 +127,8 @@ e2e-setup:  e2e-cleanup
 ## this is temporary workaround till until we have olm integration setup for testing is done
 .PHONY: create-olm-resources
 create-olm-resources:
-	oc create -f deploy/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml || true
-	oc create -f deploy/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml || true
+	oc apply -f deploy/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml
+	oc apply -f deploy/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml
 
 .PHONY: e2e-cleanup
 e2e-cleanup:
