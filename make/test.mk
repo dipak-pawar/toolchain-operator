@@ -5,8 +5,6 @@ UNAME_S := $(shell uname -s)
 include ./make/verbose.mk
 include ./make/out.mk
 
-export DEPLOYED_NAMESPACE:=
-
 .PHONY: test
 ## Runs Go package tests and stops when the first one fails
 test: ./vendor
@@ -40,12 +38,22 @@ ifeq ($(OPENSHIFT_VERSION),3)
 endif
 	$(Q)operator-sdk test local ./test/e2e --namespace $(TEST_NAMESPACE) --up-local --global-manifest deploy/test/global-manifests.yaml --namespaced-manifest deploy/test/namespace-manifests.yaml --go-test-flags "-v -timeout=15m"
 
+.PHONY: test-e2e
+## Runs the e2e tests and WITHOUT producing coverage files for each package.
+test-e2e: build build-image e2e-setup
+	$(call log-info,"Running E2E test: $@")
+	go test ./test/e2e/... -root=$(PWD) -kubeconfig=$(HOME)/.kube/config -globalMan deploy/test/global-manifests.yaml -namespacedMan deploy/test/namespace-manifests.yaml -v -parallel=1 -singleNamespace
+
+ .PHONY: e2e-setup
+e2e-setup:  e2e-cleanup
+	oc new-project toolchain-e2e-test || true
+
 .PHONY: e2e-setup
 e2e-setup: e2e-cleanup 
-	$(Q)oc new-project $(TEST_NAMESPACE)
+	$(Q)oc new-project toolchain-e2e-test
 
 .PHONY: e2e-cleanup
 e2e-cleanup: get-test-namespace
-	$(Q)-oc delete project $(TEST_NAMESPACE) --timeout=10s --wait
+	$(Q)-oc delete project toolchain-e2e-test --timeout=10s --wait
 
 endif
