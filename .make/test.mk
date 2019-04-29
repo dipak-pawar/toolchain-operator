@@ -116,19 +116,13 @@ test-unit: prebuild-check $(SOURCES)
 
 .PHONY: test-e2e
 ## Runs the e2e tests and WITHOUT producing coverage files for each package.
-test-e2e: build build-image e2e-setup create-olm-resources
+test-e2e: e2e-setup create-resources deploy-operator
 	$(call log-info,"Running E2E test: $@")
-	go test ./test/e2e/... -root=$(PWD) -kubeconfig=$(HOME)/.kube/config -globalMan deploy/test/global-manifests.yaml -namespacedMan deploy/test/namespace-manifests.yaml -v -parallel=1 -singleNamespace
+	operator-sdk test local ./test/e2e --no-setup --debug --namespace $(NAMESPACE)
 
 .PHONY: e2e-setup
 e2e-setup:  e2e-cleanup
-	oc new-project toolchain-e2e-test || true
-
-## this is temporary workaround till until we have olm integration setup for testing is done
-.PHONY: create-olm-resources
-create-olm-resources:
-	oc apply -f deploy/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml
-	oc apply -f deploy/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml
+	oc new-project ${NAMESPACE} || true
 
 .PHONY: e2e-cleanup
 e2e-cleanup:
@@ -136,9 +130,9 @@ e2e-cleanup:
 	oc delete oauthclient codeready-toolchain || true
 	oc delete clusterrolebinding toolchain-enabler || true
 	oc delete clusterrole toolchain-enabler || true
-	oc delete project toolchain-e2e-test || true
 	oc delete -f deploy/olm-catalog/manifests/0.0.2/dsaas-cluster-admin.ClusterRole.yaml || true
 	oc delete -f deploy/olm-catalog/manifests/0.0.2/online-registration.ClusterRole.yaml || true
+	oc delete project $(NAMESPACE) || true
 
 #-------------------------------------------------------------------------------
 # Inspect coverage of unit tests, integration tests in either pure

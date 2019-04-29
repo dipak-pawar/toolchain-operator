@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
 
 func TestToolChainEnabler(t *testing.T) {
@@ -29,8 +28,6 @@ func TestToolChainEnabler(t *testing.T) {
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, toolChainEnablerList)
 	require.NoError(t, err, "failed to add custom resource scheme to framework")
 
-	os.Setenv("TEST_NAMESPACE", "toolchain-e2e-test")
-	defer os.Unsetenv("TEST_NAMESPACE")
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
 	err = ctx.InitializeClusterResources(&framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
