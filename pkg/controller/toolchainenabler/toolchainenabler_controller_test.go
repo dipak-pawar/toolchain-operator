@@ -56,7 +56,7 @@ func TestToolChainEnablerController(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(codereadyv1alpha1.SchemeGroupVersion, tce)
 
-	cache := FakeCache{nil}
+	cache := NewFakeCache(nil)
 
 	t.Run("Reconcile", func(t *testing.T) {
 		t.Run("without registering openshift specific resources", func(t *testing.T) {
@@ -65,7 +65,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient(objs...))
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
-			r := &ReconcileToolChainEnabler{client: cl, scheme: s, cache: &cache}
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, cache: cache}
 
 			req := newReconcileRequest(Name)
 
@@ -83,7 +83,7 @@ func TestToolChainEnablerController(t *testing.T) {
 			cl := client.NewClient(fake.NewFakeClient())
 
 			// Create a ReconcileToolChainEnabler object with the scheme and fake client.
-			r := &ReconcileToolChainEnabler{client: cl, scheme: s, cache: &cache}
+			r := &ReconcileToolChainEnabler{client: cl, scheme: s, cache: cache}
 
 			req := newReconcileRequest(Name)
 
