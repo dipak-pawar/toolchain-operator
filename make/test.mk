@@ -31,29 +31,19 @@ get-test-namespace: ./out/test-namespace
 
 .PHONY: test-e2e
 ## Runs the e2e tests locally
-test-e2e: ./vendor e2e-setup
+test-e2e: ./vendor e2e-setup create-resources deploy-operator
 	$(info Running E2E test: $@)
 ifeq ($(OPENSHIFT_VERSION),3)
 	$(Q)oc login -u system:admin
 endif
-	$(Q)operator-sdk test local ./test/e2e --namespace $(TEST_NAMESPACE) --up-local --global-manifest deploy/test/global-manifests.yaml --namespaced-manifest deploy/test/namespace-manifests.yaml --go-test-flags "-v -timeout=15m"
-
-.PHONY: test-e2e
-## Runs the e2e tests and WITHOUT producing coverage files for each package.
-test-e2e: build build-image e2e-setup
-	$(call log-info,"Running E2E test: $@")
-	go test ./test/e2e/... -root=$(PWD) -kubeconfig=$(HOME)/.kube/config -globalMan deploy/test/global-manifests.yaml -namespacedMan deploy/test/namespace-manifests.yaml -v -parallel=1 -singleNamespace
-
- .PHONY: e2e-setup
-e2e-setup:  e2e-cleanup
-	oc new-project toolchain-e2e-test || true
+	$(Q)operator-sdk test local ./test/e2e --no-setup --debug --namespace $(NAMESPACE) --go-test-flags "-v -timeout=15m"
 
 .PHONY: e2e-setup
 e2e-setup: e2e-cleanup 
-	$(Q)oc new-project toolchain-e2e-test
+	$(Q)oc new-project $(NAMESPACE)
 
 .PHONY: e2e-cleanup
 e2e-cleanup: get-test-namespace
-	$(Q)-oc delete project toolchain-e2e-test --timeout=10s --wait
+	$(Q)oc delete project $(NAMESPACE) --timeout=10s --wait || true
 
 endif

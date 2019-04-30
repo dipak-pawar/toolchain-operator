@@ -90,6 +90,6 @@ minishift-start:
 	-eval `minishift docker-env` && oc login -u system:admin
 
 .PHONY: deploy-all
-deploy-all: clean-resources delete-project create-project create-resources deps prebuild-check deploy-operator create-cr
+deploy-all: clean-resources delete-project create-project create-resources deploy-operator create-cr
 
 endif
