@@ -22,13 +22,6 @@ test-coverage-html: ./vendor ./out/cover.out
 ./out/cover.out: ./vendor
 	$(Q)go test ${V_FLAG} -race $(shell go list ./... | grep -v /test/e2e) -failfast -coverprofile=cover.out -covermode=atomic -outputdir=./out
 
-.PHONY: get-test-namespace
-get-test-namespace: ./out/test-namespace
-	$(eval TEST_NAMESPACE := $(shell cat ./out/test-namespace))
-
-./out/test-namespace:
-	@echo -n "test-namespace-$(shell uuidgen | tr '[:upper:]' '[:lower:]')" > ./out/test-namespace
-
 .PHONY: test-e2e
 ## Runs the e2e tests locally
 test-e2e: ./vendor e2e-setup create-resources deploy-operator
@@ -43,7 +36,7 @@ e2e-setup: e2e-cleanup
 	$(Q)oc new-project $(NAMESPACE)
 
 .PHONY: e2e-cleanup
-e2e-cleanup: get-test-namespace
+e2e-cleanup:
 	$(Q)oc delete project $(NAMESPACE) --timeout=10s --wait || true
 
 endif
