@@ -113,6 +113,7 @@ want to compile. That's why we offer special `make` targets for these topics:
 
 ===== Fetch dependencies [[fetch-dependencies]]
 
+
 This will download all the dependencies for this project inside a directory
 called `vendor`. This way we can ensure that every developer and our CI system
 is using the same version.
