@@ -1,0 +1,8 @@
+apiVersion: toolchain.openshift.dev/v1alpha1
+kind: InstallConfig
+metadata:
+  name: toolchain-installconfig
+  namespace: toolchain-operator
+spec:
+  cheOperatorSpec:
+    namespace: che-op-4

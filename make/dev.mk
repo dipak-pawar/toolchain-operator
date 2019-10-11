@@ -14,6 +14,12 @@ up-local: login-as-admin create-namespace deploy-rbac build deploy-crd
 	$(Q)-oc new-project $(LOCAL_TEST_NAMESPACE) || true
 	$(Q)operator-sdk up local --namespace=$(APP_NAMESPACE) --verbose
 
+.PHONY: up-local-openshift4
+## Run Operator locally
+up-local-openshift4: create-namespace deploy-rbac build deploy-crd
+	$(Q)-oc new-project $(LOCAL_TEST_NAMESPACE) || true
+	$(Q)operator-sdk up local --namespace=$(APP_NAMESPACE) --verbose
+
 .PHONY: login-as-admin
 ## Log in as system:admin
 login-as-admin:
@@ -54,4 +60,9 @@ deploy-rbac:
 .PHONY: deploy-crd
 ## Deploy CRD
 deploy-crd:
-	$(Q)-oc apply -f deploy/crds/toolchain_v1alpha1_installation.yaml
+	$(Q)-oc apply -f deploy/crds/toolchain_v1alpha1_installconfig_crd.yaml
+
+.PHONY: deploy-cr
+## Deploy CRD
+deploy-cr:
+	$(Q)-oc apply -f deploy/crds/toolchain_v1alpha1_installconfig_cr.yaml

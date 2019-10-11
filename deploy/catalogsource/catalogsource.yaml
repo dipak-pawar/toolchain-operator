@@ -4,7 +4,7 @@ metadata:
   name: toolchain
   namespace: openshift-marketplace
 spec:
-  sourceType: internal
+  sourceType: configmap
   configMap: crt-operators
   displayName: Toolchain Operators
   publisher: Red Hat

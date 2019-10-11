@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: eclipse-che
+  namespace: che-op
+spec:
+  channel: stable
+  name: eclipse-che
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: eclipse-che.v7.2.0
